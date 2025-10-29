@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taggle - 天気</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="weather">
+
+  <div class="panel" style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding-top:28px;">
+    <div class="modal-content weather-card" role="region" aria-label="天気カード" style="max-width:360px; width:100%;">
+
+      <div class="weather-head">
+        <h2 id="wxTitle" style="margin:0;">阿南市の現在の天気</h2>
+      </div>
+
+      <!-- タブ状の切替ボタン -->
+      <div class="wx-tabs" role="tablist" aria-label="天気表示切替">
+        <button id="btnToday" class="wx-tab" role="tab" aria-selected="true" aria-pressed="true">今日</button>
+        <button id="btnTomorrow" class="wx-tab" role="tab" aria-selected="false" aria-pressed="false">明日</button>
+      </div>
+
+      <!-- ページ領域（ボタンで切替） -->
+      <div id="wxPages" aria-live="polite">
+        <!-- 今日 -->
+        <section id="pageToday" class="wx-page" role="tabpanel" aria-labelledby="btnToday">
+          <div id="wxIconToday" class="wx-hero" style="position:static; text-align:center; font-size:100px; margin:10px 0;">⛅</div>
+          <ul class="wx-kv" style="font-size:1.05rem;">
+            <li>天気：<b id="wxDescToday">—</b></li>
+            <li>気温：<b id="wxTempToday">—</b></li>
+            <li>湿度：<b id="wxHumToday">—</b></li>
+          </ul>
+          <p id="wxAdviceToday" class="wx-advice" style="font-size:1.05rem;">—</p>
+        </section>
+
+        <!-- 明日 -->
+        <section id="pageTomorrow" class="wx-page" role="tabpanel" aria-labelledby="btnTomorrow" hidden>
+          <div id="wxIconTomorrow" class="wx-hero" style="position:static; text-align:center; font-size:100px; margin:10px 0;">⛅</div>
+          <ul class="wx-kv" style="font-size:1.05rem;">
+            <li>天気：<b id="wxDescTomorrow">—</b></li>
+            <li>最高/最低：<b id="wxTempTomorrow">—</b></li>
+            <li>降水：<b id="wxRainTomorrow">—</b></li>
+          </ul>
+          <p id="wxAdviceTomorrow" class="wx-advice" style="font-size:1.05rem;">—</p>
+        </section>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 下の閉じるボタン -->
+  <div class="footer-row">
+    <a href="index.html" class="btn-close" aria-label="閉じる">
+      <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      </svg>
+    </a>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // APIデータを投入
+    async function fillWeather() {
+      const j = await fetchWeather();
+
+      // 今日
+      const t  = Math.round(j.current.temperature_2m);
+      const h  = j.current.relative_humidity_2m;
+      const wc = j.current.weather_code;
+      document.getElementById('wxIconToday').textContent = WMO_ICON(wc);
+      document.getElementById('wxDescToday').textContent = (WMO && WMO[wc]) ? WMO[wc] : '—';
+      document.getElementById('wxTempToday').textContent = `${t}℃`;
+      document.getElementById('wxHumToday').textContent  = `${h}%`;
+      document.getElementById('wxAdviceToday').textContent = buildAdviceToday(t, h, wc);
+
+      // 明日（daily配列の1番目）
+      const i    = 1;
+      const wc2  = j.daily.weather_code[i];
+      const tmax = Math.round(j.daily.temperature_2m_max[i]);
+      const tmin = Math.round(j.daily.temperature_2m_min[i]);
+      const rain = j.daily.precipitation_sum[i];
+      document.getElementById('wxIconTomorrow').textContent = WMO_ICON(wc2);
+      document.getElementById('wxDescTomorrow').textContent = (WMO && WMO[wc2]) ? WMO[wc2] : '—';
+      document.getElementById('wxTempTomorrow').textContent = `${tmax}℃ / ${tmin}℃`;
+      document.getElementById('wxRainTomorrow').textContent = `${rain} mm`;
+      document.getElementById('wxAdviceTomorrow').textContent = buildAdviceTomorrow(tmax, rain);
+    }
+
+    // タブ切替（ボタン）
+    function initTabs() {
+      const btnToday = document.getElementById('btnToday');
+      const btnTomorrow = document.getElementById('btnTomorrow');
+      const pageToday = document.getElementById('pageToday');
+      const pageTomorrow = document.getElementById('pageTomorrow');
+      const titleEl = document.getElementById('wxTitle');
+
+      function setTitle(i){
+        const area = '阿南市';
+        if (i === 0) {
+          titleEl.textContent = `${area}の現在の天気`;
+        } else {
+          const t = new Date(Date.now() + 86400000);
+          titleEl.textContent = `${area}の明日（${t.getMonth()+1}/${t.getDate()}）の天気`;
+        }
+      }
+      function go(i){
+        const isToday = (i === 0);
+        pageToday.hidden = !isToday;
+        pageTomorrow.hidden = isToday;
+
+        btnToday.setAttribute('aria-selected', String(isToday));
+        btnToday.setAttribute('aria-pressed',  String(isToday));
+        btnTomorrow.setAttribute('aria-selected', String(!isToday));
+        btnTomorrow.setAttribute('aria-pressed',  String(!isToday));
+
+        setTitle(i);
+        (isToday ? pageToday : pageTomorrow).focus?.();
+      }
+
+      btnToday.addEventListener('click', ()=> go(0));
+      btnTomorrow.addEventListener('click', ()=> go(1));
+      go(0); // 初期は今日
+    }
+
+    (async () => {
+      try {
+        await fillWeather();
+      } catch (e) {
+        document.getElementById('wxAdviceToday').textContent = e?.message || String(e);
+      }
+      initTabs();
+    })();
+  </script>
+</body>
+</html>

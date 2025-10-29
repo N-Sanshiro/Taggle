@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Taggle - 外見撮影</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="cloth">
+  <div class="scan-wrap">
+    <div class="preview">
+      <video id="clothCam" autoplay playsinline muted></video>
+      <canvas id="clothCanvas" class="hidden"></canvas>
+    </div>
+
+    <p class="hint">服の外見写真を撮ろう</p>
+
+    <div class="actions">
+      <button id="clothSnap" class="btn-pill">撮影して保存</button>
+      <a href="index.html" class="btn-pill">やめる（ホームへ）</a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

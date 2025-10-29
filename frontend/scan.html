@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Taggle - タグ読み取り</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="scan">
+  <div class="scan-wrap">
+    <div class="preview">
+      <video id="tagCam" autoplay playsinline muted></video>
+      <canvas id="tagCanvas" class="hidden"></canvas>
+    </div>
+
+    <p class="hint">服のタグを読み取ろう！！</p>
+
+    <div class="actions">
+      <button id="tagSnap" class="btn-pill">撮影して解析</button>
+      <button id="sendTag" class="btn-pill" style="display:none" disabled>送信</button>
+    </div>
+
+    <div class="footer-row">
+      <a href="index.html" class="btn-close" aria-label="閉じる">
+        <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- エラーモーダル -->
+  <div class="modal" style="display:none">
+    <div class="modal-content">
+      <span class="close" aria-label="閉じる">&times;</span>
+      <h2>メッセージ</h2>
+      <pre style="white-space:pre-wrap;word-break:break-word;margin:10px 0 0"></pre>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
