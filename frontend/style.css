@@ -345,3 +345,25 @@ button { cursor: pointer; }
 
 /* ローディング時のスクロール固定 */
 .no-scroll{ overflow: hidden; }
+
+/* 進捗バー */
+.loading-meter{
+  width: 220px;
+  height: 6px;
+  background: #e6f2f3;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.loading-meter .bar{
+  height: 100%;
+  width: 0%;
+  background: #0c8b90;
+  transition: width .1s linear;
+}
+.loading-percent{
+  font-size: .85rem;
+  opacity: .75;
+  margin-top: 4px;
+  text-align: center;
+}

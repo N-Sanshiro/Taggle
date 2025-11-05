@@ -53,17 +53,49 @@ async function useCamera(videoEl) {
   try{ await videoEl.play(); }catch{ const onTap=()=>{ videoEl.play().finally(()=>document.removeEventListener('touchend',onTap));}; document.addEventListener('touchend',onTap,{once:true}); }
   return ()=>stream.getTracks().forEach(t=>t.stop());
 }
-async function postImage(url, blob, extraForm = {}, { signal } = {}) {
-  const fd = new FormData(); fd.append('file', blob, 'photo.jpg');
-  for(const k in extraForm) if(Object.prototype.hasOwnProperty.call(extraForm,k)) fd.append(k, extraForm[k]);
-  const r = await fetch(url, { method:'POST', body:fd, signal });
-  const raw = await r.text(); let data=null; try{ data = raw ? JSON.parse(raw) : null; }catch{}
-  if(!r.ok){ let detail = (data && typeof data==='object' && data.detail!=null) ? data.detail : (data ?? raw ?? r.statusText);
-    if(typeof detail!=='string'){ try{ detail = JSON.stringify(detail,null,2);}catch{ detail = String(detail);} }
-    throw new Error(detail);
-  }
-  return data ?? { raw };
+async function postImage(url, blob, extraForm = {}, { signal, onProgress } = {}) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append('file', blob, 'photo.jpg');
+    for (const k in extraForm) if (Object.prototype.hasOwnProperty.call(extraForm, k)) {
+      fd.append(k, extraForm[k]);
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data = null;
+        try { data = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch {}
+        if (ok) {
+          resolve(data ?? { raw: xhr.responseText });
+        } else {
+          let detail = (data && typeof data==='object' && data.detail!=null) ? data.detail : (data ?? xhr.statusText);
+          if (typeof detail !== 'string') { try { detail = JSON.stringify(detail,null,2);} catch { detail = String(detail);} }
+          reject(new Error(detail));
+        }
+      }
+    };
+
+    // アップロード進捗（送信中の%）
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && typeof onProgress === 'function') {
+        onProgress((e.loaded / e.total) * 100);
+      }
+    };
+
+    if (signal) {
+      const onAbort = () => { try { xhr.abort(); } catch {} reject(new DOMException('Aborted','AbortError')); };
+      if (signal.aborted) return onAbort();
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    xhr.send(fd);
+  });
 }
+
 
 /* 結果の抽出＆成形（Dify出力に柔軟に対応） */
 function extractResultObject(resp){
@@ -104,18 +136,32 @@ async function pageScan(){
   const stop = await useCamera(video);
 
   btn.onclick = async ()=>{
-    btn.disabled = true; const prev = btn.textContent; btn.textContent = '解析中…';
-    setLoading(true, 'タグを解析中', 'AIが洗濯表示を読み取っています');
-    try{
-      const rawBlob = await snapshot(video, canvas);
-      const blob = await resizeBlobToJpeg(rawBlob, 1280, .85);
-      const tagImageDataURL = toDataURL(canvas);
-      const json = await postImage(joinUrl(API_BASE, ANALYZE_ENDPOINT), blob, { name:'' });
+  btn.disabled = true; const prev = btn.textContent; btn.textContent = '解析中…';
+  setLoading(true, 'タグを解析中', 'AIに送信しています');
+  const ac = new AbortController();
+  try{
+    const rawBlob = await snapshot(video, canvas);
+    const blob = await resizeBlobToJpeg(rawBlob, 1280, .85);
+    const tagImageDataURL = toDataURL(canvas);
 
-      sessionStorage.setItem(SS_LATEST_KEY, JSON.stringify({
-        ts: Date.now(), api: json, tagImage: tagImageDataURL
-      }));
-      location.href = 'result.html';
+    // 送信中の進捗％を表示
+    const json = await postImage(
+      joinUrl(API_BASE, ANALYZE_ENDPOINT),
+      blob,
+      { name:'' },
+      {
+        signal: ac.signal,
+        onProgress: (pct) => setLoadingProgress(pct)
+      }
+    );
+
+    // サーバから返ってきた後は「処理中」に文言変更（任意）
+    setLoading(true, '結果を処理中', '少々お待ちください');
+
+    sessionStorage.setItem(SS_LATEST_KEY, JSON.stringify({
+      ts: Date.now(), api: json, tagImage: tagImageDataURL
+    }));
+    location.href = 'result.html';
     }catch(e){
       toastError('解析に失敗しました: ' + (e?.message || String(e)));
     }finally{
@@ -286,6 +332,7 @@ window.addEventListener('load', async ()=>{
 });
 
 /* ローディングUI */
+/* ローディングUI（進捗対応） */
 function ensureLoading(){
   let el = document.getElementById('loading');
   if (!el) {
@@ -298,11 +345,11 @@ function ensureLoading(){
         <div class="loading-text">
           <div class="title"></div>
           <div class="subtitle"></div>
+          <div class="loading-meter" aria-hidden="true"><div class="bar"></div></div>
+          <div class="loading-percent" aria-hidden="true"></div>
         </div>
       </div>`;
     document.body.appendChild(el);
-
-    // クリックで閉じないように（誤タップ防止）
     el.addEventListener('click', (e) => e.stopPropagation(), { passive: true });
   }
   return el;
@@ -311,12 +358,13 @@ function ensureLoading(){
 function setLoading(show, title = '処理中…', subtitle = 'しばらくお待ちください'){
   const el = ensureLoading();
   const root = document.documentElement;
-
   if (show) {
     el.querySelector('.title').textContent = title || '';
     el.querySelector('.subtitle').textContent = subtitle || '';
+    // 初期化
+    setLoadingProgress(0);
     el.style.display = 'flex';
-    root.classList.add('no-scroll');          // スクロール固定
+    root.classList.add('no-scroll');
     document.body.setAttribute('aria-busy','true');
   } else {
     el.style.display = 'none';
@@ -324,3 +372,14 @@ function setLoading(show, title = '処理中…', subtitle = 'しばらくお待
     document.body.removeAttribute('aria-busy');
   }
 }
+
+/* 0〜100 の数値で進捗表示 */
+function setLoadingProgress(pct){
+  const el = ensureLoading();
+  const bar = el.querySelector('.loading-meter .bar');
+  const label = el.querySelector('.loading-percent');
+  const v = Math.max(0, Math.min(100, Math.floor(pct || 0)));
+  if (bar) bar.style.width = v + '%';
+  if (label) label.textContent = v > 0 ? (v + '%') : '';
+}
+
