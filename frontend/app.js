@@ -284,3 +284,43 @@ window.addEventListener('load', async ()=>{
     toastError(e?.message || String(e));
   }
 });
+
+/* ローディングUI */
+function ensureLoading(){
+  let el = document.getElementById('loading');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading';
+    el.className = 'loading-overlay';
+    el.innerHTML = `
+      <div class="loading-panel" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="loading-text">
+          <div class="title"></div>
+          <div class="subtitle"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+
+    // クリックで閉じないように（誤タップ防止）
+    el.addEventListener('click', (e) => e.stopPropagation(), { passive: true });
+  }
+  return el;
+}
+
+function setLoading(show, title = '処理中…', subtitle = 'しばらくお待ちください'){
+  const el = ensureLoading();
+  const root = document.documentElement;
+
+  if (show) {
+    el.querySelector('.title').textContent = title || '';
+    el.querySelector('.subtitle').textContent = subtitle || '';
+    el.style.display = 'flex';
+    root.classList.add('no-scroll');          // スクロール固定
+    document.body.setAttribute('aria-busy','true');
+  } else {
+    el.style.display = 'none';
+    root.classList.remove('no-scroll');
+    document.body.removeAttribute('aria-busy');
+  }
+}
