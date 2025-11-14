@@ -8,11 +8,11 @@
 </head>
 <body data-page="weather">
 
-  <div class="panel" style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding-top:28px;">
+  <div class="panel" style="display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding-top:20px;">
     <div class="modal-content weather-card" role="region" aria-label="天気カード" style="max-width:360px; width:100%;">
 
       <div class="weather-head">
-        <h2 id="wxTitle" style="margin:0;">阿南市の現在の天気</h2>
+        <h2 id="wxTitle" style="margin:0;">---の現在の天気</h2>
       </div>
 
       <!-- タブ状の切替ボタン -->
@@ -31,7 +31,7 @@
             <li>気温：<b id="wxTempToday">—</b></li>
             <li>湿度：<b id="wxHumToday">—</b></li>
           </ul>
-          <p id="wxAdviceToday" class="wx-advice" style="font-size:1.05rem;">—</p>
+          <div id="wxAdviceToday" class="wx-advice" style="font-size:1.00rem;">—</div>
         </section>
 
         <!-- 明日 -->
@@ -42,7 +42,7 @@
             <li>最高/最低：<b id="wxTempTomorrow">—</b></li>
             <li>降水：<b id="wxRainTomorrow">—</b></li>
           </ul>
-          <p id="wxAdviceTomorrow" class="wx-advice" style="font-size:1.05rem;">—</p>
+          <div id="wxAdviceTomorrow" class="wx-advice" style="font-size:1.00rem;">—</div> <!-- ← hidden を外す -->
         </section>
       </div>
 
@@ -60,77 +60,124 @@
 
   <script src="app.js"></script>
   <script>
-    // APIデータを投入
-    async function fillWeather() {
-      const j = await fetchWeather();
+  // regions から {prefecture, latitude, longitude, timezone} を取得
+  async function getUserRegion() {
+    const fallback = { lat: 34.06583, lon: 134.55944, tz: 'Asia/Tokyo', prefecture: '徳島県' };
+    try {
+      const r = await fetch('../api/get_region.php', { credentials: 'same-origin' });
+      const js = await r.json();
+      if (!js.ok || !js.row) return fallback;
 
-      // 今日
-      const t  = Math.round(j.current.temperature_2m);
-      const h  = j.current.relative_humidity_2m;
-      const wc = j.current.weather_code;
-      document.getElementById('wxIconToday').textContent = WMO_ICON(wc);
-      document.getElementById('wxDescToday').textContent = (WMO && WMO[wc]) ? WMO[wc] : '—';
-      document.getElementById('wxTempToday').textContent = `${t}℃`;
-      document.getElementById('wxHumToday').textContent  = `${h}%`;
-      document.getElementById('wxAdviceToday').textContent = buildAdviceToday(t, h, wc);
+      const row = js.row;
+      return {
+        lat: parseFloat(row.latitude) || fallback.lat,
+        lon: parseFloat(row.longitude) || fallback.lon,
+        tz: row.timezone || fallback.tz,
+        prefecture: row.prefecture || fallback.prefecture
+      };
+    } catch {
+      return fallback;
+    }
+  }
 
-      // 明日（daily配列の1番目）
-      const i    = 1;
-      const wc2  = j.daily.weather_code[i];
-      const tmax = Math.round(j.daily.temperature_2m_max[i]);
-      const tmin = Math.round(j.daily.temperature_2m_min[i]);
-      const rain = j.daily.precipitation_sum[i];
-      document.getElementById('wxIconTomorrow').textContent = WMO_ICON(wc2);
-      document.getElementById('wxDescTomorrow').textContent = (WMO && WMO[wc2]) ? WMO[wc2] : '—';
-      document.getElementById('wxTempTomorrow').textContent = `${tmax}℃ / ${tmin}℃`;
-      document.getElementById('wxRainTomorrow').textContent = `${rain} mm`;
-      document.getElementById('wxAdviceTomorrow').textContent = buildAdviceTomorrow(tmax, rain);
+  // Open-Meteo API
+  async function fetchWeather(lat, lon, tz) {
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+      + `&current=temperature_2m,relative_humidity_2m,weather_code`
+      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum`
+      + `&timezone=${encodeURIComponent(tz)}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('天気データの取得に失敗しました');
+    return r.json();
+  }
+
+  // 天気データを画面に反映
+  async function fillWeather() {
+    const region = await getUserRegion();
+    const data = await fetchWeather(region.lat, region.lon, region.tz);
+    const area = region.prefecture;
+
+    // タイトル変更
+    const titleEl = document.getElementById('wxTitle');
+    titleEl.textContent = `${area}の現在の天気`;
+
+    // 今日
+    const t  = Math.round(data.current.temperature_2m);
+    const h  = data.current.relative_humidity_2m;
+    const wc = data.current.weather_code;
+    document.getElementById('wxIconToday').textContent = WMO_ICON(wc);
+    document.getElementById('wxDescToday').textContent = (WMO && WMO[wc]) ? WMO[wc] : '—';
+    document.getElementById('wxTempToday').textContent = `${t}℃`;
+    document.getElementById('wxHumToday').textContent  = `${h}%`;
+    renderAdvice(document.getElementById('wxAdviceToday'),    buildAdviceToday(t, h, wc));
+
+    // 明日
+    const i = 1;
+    const wc2 = data.daily.weather_code[i];
+    const tmax = Math.round(data.daily.temperature_2m_max[i]);
+    const tmin = Math.round(data.daily.temperature_2m_min[i]);
+    const rain = data.daily.precipitation_sum[i];
+    document.getElementById('wxIconTomorrow').textContent = WMO_ICON(wc2);
+    document.getElementById('wxDescTomorrow').textContent = (WMO && WMO[wc2]) ? WMO[wc2] : '—';
+    document.getElementById('wxTempTomorrow').textContent = `${tmax}℃ / ${tmin}℃`;
+    document.getElementById('wxRainTomorrow').textContent = `${rain} mm`;
+    renderAdvice(document.getElementById('wxAdviceTomorrow'), buildAdviceTomorrow(tmax, rain));
+
+    // タブの初期化
+    initTabs(area);
+  }
+
+  // タブ切替
+  function initTabs(area) {
+    const btnToday = document.getElementById('btnToday');
+    const btnTomorrow = document.getElementById('btnTomorrow');
+    const pageToday = document.getElementById('pageToday');
+    const pageTomorrow = document.getElementById('pageTomorrow');
+    const titleEl = document.getElementById('wxTitle');
+
+    function setTitle(i) {
+      if (i === 0) {
+        titleEl.textContent = `${area}の現在の天気`;
+      } else {
+        const d = new Date(Date.now() + 86400000);
+        titleEl.textContent = `${area}の明日（${d.getMonth() + 1}/${d.getDate()}）の天気`;
+      }
     }
 
-    // タブ切替（ボタン）
-    function initTabs() {
-      const btnToday = document.getElementById('btnToday');
-      const btnTomorrow = document.getElementById('btnTomorrow');
-      const pageToday = document.getElementById('pageToday');
-      const pageTomorrow = document.getElementById('pageTomorrow');
-      const titleEl = document.getElementById('wxTitle');
+    function go(i){
+  const isToday = i === 0;
 
-      function setTitle(i){
-        const area = '阿南市';
-        if (i === 0) {
-          titleEl.textContent = `${area}の現在の天気`;
-        } else {
-          const t = new Date(Date.now() + 86400000);
-          titleEl.textContent = `${area}の明日（${t.getMonth()+1}/${t.getDate()}）の天気`;
-        }
-      }
-      function go(i){
-        const isToday = (i === 0);
-        pageToday.hidden = !isToday;
-        pageTomorrow.hidden = isToday;
+  pageToday.hidden    = !isToday;
+  pageTomorrow.hidden =  isToday;
 
-        btnToday.setAttribute('aria-selected', String(isToday));
-        btnToday.setAttribute('aria-pressed',  String(isToday));
-        btnTomorrow.setAttribute('aria-selected', String(!isToday));
-        btnTomorrow.setAttribute('aria-pressed',  String(!isToday));
+  // 選択状態を両方のARIA属性で同期
+  btnToday.setAttribute('aria-selected', String(isToday));
+  btnTomorrow.setAttribute('aria-selected', String(!isToday));
+  btnToday.setAttribute('aria-pressed',  String(isToday));
+  btnTomorrow.setAttribute('aria-pressed', String(!isToday));
 
-        setTitle(i);
-        (isToday ? pageToday : pageTomorrow).focus?.();
-      }
+  // 保険：クラスでも切替（CSSに .wx-tab.is-active のルールあり）
+  btnToday.classList.toggle('is-active',  isToday);
+  btnTomorrow.classList.toggle('is-active', !isToday);
 
-      btnToday.addEventListener('click', ()=> go(0));
-      btnTomorrow.addEventListener('click', ()=> go(1));
-      go(0); // 初期は今日
+  setTitle(i);
+}
+
+    btnToday.addEventListener('click', () => go(0));
+    btnTomorrow.addEventListener('click', () => go(1));
+    go(0);
+  }
+
+  // 実行
+  (async () => {
+    try {
+      await fillWeather();
+    } catch (e) {
+      document.getElementById('wxAdviceToday').textContent = e?.message || String(e);
     }
+  })();
+</script>
 
-    (async () => {
-      try {
-        await fillWeather();
-      } catch (e) {
-        document.getElementById('wxAdviceToday').textContent = e?.message || String(e);
-      }
-      initTabs();
-    })();
-  </script>
 </body>
 </html>

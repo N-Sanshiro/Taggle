@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>住所セレクト（都道府県→市区町村）</title>
+  <style>
+    :root { --gap: 12px; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", sans-serif; line-height: 1.6; padding: 24px; background: #f7f7f8; }
+    .card { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.06); padding: 24px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: var(--gap); }
+    label { font-weight: 600; }
+    select, button { font-size: 16px; padding: 10px 12px; border-radius: 10px; border: 1px solid #d6d6db; background: #fff; }
+    select:disabled { background: #f0f0f3; color: #888; }
+    .hint { font-size: 12px; color: #666; }
+    .actions { display: flex; gap: var(--gap); }
+    .primary { background: #1e88e5; color: #fff; border-color: transparent; cursor: pointer; }
+    .primary:disabled { background: #b8d7f5; cursor: not-allowed; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>お住まいの地域</h1>
+    <form id="address-form">
+      <div class="row">
+        <label for="pref">都道府県 <span class="hint">（必須）</span></label>
+        <select id="pref" name="prefecture" required>
+          <option value="" selected>選択してください</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="city">市区町村 <span class="hint">（必須）</span></label>
+        <select id="city" name="municipality" required disabled>
+          <option value="">まず都道府県を選択してください</option>
+        </select>
+        <p id="city-hint" class="hint" aria-live="polite">選択した都道府県の市区町村を読み込みます。</p>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="primary" disabled id="submit-btn">送信</button>
+        <button type="reset">リセット</button>
+      </div>
+    </form>
+
+    <pre id="out" aria-live="polite" class="hint"></pre>
+  </div>
+
+  <script>
+    // ---- 1) 都道府県（47都道府県） ----
+    const PREFS = [
+      "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+      "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+      "新潟県","富山県","石川県","福井県","山梨県","長野県",
+      "岐阜県","静岡県","愛知県","三重県",
+      "滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県",
+      "鳥取県","島根県","岡山県","広島県","山口県",
+      "徳島県","香川県","愛媛県","高知県",
+      "福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"
+    ];
+
+    // ---- 2) 市区町村データ（例：主要県のみ抜粋） ----
+    // 実運用では別JSONから読み込むのがオススメです（構造は同じ）。
+    const MUNICIPALITY = {
+      "北海道": ["札幌市","函館市","小樽市","旭川市","室蘭市","釧路市","帯広市","北見市","夕張市","岩見沢市","網走市","留萌市","苫小牧市","稚内市","美唄市","芦別市","江別市","赤平市","紋別市","士別市","名寄市","三笠市","根室市","千歳市","滝川市","砂川市","歌志内市","深川市","富良野市","登別市","恵庭市","伊達市","北広島市","石狩市"],
+      "東京都": ["千代田区","中央区","港区","新宿区","文京区","台東区","墨田区","江東区","品川区","目黒区","大田区","世田谷区","渋谷区","中野区","杉並区","豊島区","北区","荒川区","板橋区","練馬区","足立区","葛飾区","江戸川区","八王子市","立川市","武蔵野市","三鷹市","府中市","調布市","町田市","小金井市","小平市","日野市","東村山市","国分寺市","国立市","西東京市"],
+      "神奈川県": ["横浜市","川崎市","相模原市","横須賀市","藤沢市","平塚市","鎌倉市","茅ヶ崎市","逗子市","三浦市","秦野市","厚木市","大和市","伊勢原市","海老名市","座間市","南足柄市"],
+      "千葉県": ["千葉市","船橋市","市川市","松戸市","柏市","市原市","八千代市","習志野市","流山市","浦安市","佐倉市","野田市","成田市","我孫子市"],
+      "埼玉県": ["さいたま市","川口市","川越市","所沢市","越谷市","春日部市","草加市","上尾市","熊谷市","久喜市","深谷市","新座市","朝霞市","三郷市","八潮市","戸田市","蕨市"],
+      "愛知県": ["名古屋市","豊橋市","岡崎市","一宮市","瀬戸市","半田市","春日井市","豊川市","津島市","碧南市","刈谷市","豊田市","安城市","西尾市","蒲郡市","常滑市","江南市","小牧市","稲沢市","新城市","東海市","大府市","知多市","知立市","尾張旭市","高浜市","岩倉市","豊明市","日進市","田原市","愛西市","清須市","北名古屋市","弥富市","みよし市","あま市","長久手市"],
+      "大阪府": ["大阪市","堺市","岸和田市","豊中市","池田市","吹田市","泉大津市","高槻市","貝塚市","守口市","枚方市","茨木市","八尾市","泉佐野市","富田林市","寝屋川市","河内長野市","松原市","大東市","和泉市","箕面市","柏原市","羽曳野市","門真市","摂津市","高石市","藤井寺市","東大阪市","四條畷市","交野市","大阪狭山市","阪南市"],
+      "京都府": ["京都市","宇治市","亀岡市","城陽市","向日市","長岡京市","八幡市","京田辺市","南丹市","木津川市"],
+      "兵庫県": ["神戸市","姫路市","尼崎市","明石市","西宮市","洲本市","芦屋市","伊丹市","相生市","豊岡市","加古川市","赤穂市","西脇市","宝塚市","三木市","高砂市","川西市","小野市","三田市","加西市","丹波篠山市","淡路市","宍粟市","加東市","たつの市"],
+      "福岡県": ["北九州市","福岡市","大牟田市","久留米市","直方市","飯塚市","田川市","柳川市","八女市","筑後市","大川市","行橋市","豊前市","中間市","小郡市","筑紫野市","春日市","大野城市","宗像市","太宰府市","古賀市","福津市","うきは市","宮若市","嘉麻市","朝倉市","みやま市","糸島市"],
+      "沖縄県": ["那覇市","宜野湾市","石垣市","浦添市","名護市","糸満市","沖縄市","豊見城市","うるま市","宮古島市","南城市"]
+    };
+
+    // ---- 3) UI 初期化 ----
+    const prefSelect = document.getElementById('pref');
+    const citySelect = document.getElementById('city');
+    const submitBtn = document.getElementById('submit-btn');
+    const out = document.getElementById('out');
+    const cityHint = document.getElementById('city-hint');
+
+    // 都道府県オプションを投入
+    PREFS.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      prefSelect.appendChild(opt);
+    });
+
+    // 都道府県変更時に市区町村を再構築
+    prefSelect.addEventListener('change', () => {
+      const pref = prefSelect.value;
+      citySelect.innerHTML = '';
+
+      if (!pref) {
+        citySelect.disabled = true;
+        citySelect.appendChild(new Option('まず都道府県を選択してください', ''));
+        submitBtn.disabled = true;
+        cityHint.textContent = '選択した都道府県の市区町村を読み込みます。';
+        return;
+      }
+
+      const cities = MUNICIPALITY[pref];
+      if (!cities || cities.length === 0) {
+        citySelect.disabled = false; // 入力自体は可能に
+        citySelect.appendChild(new Option('（市区町村データ未入力）', ''));
+        cityHint.textContent = 'このサンプルでは当該都道府県の市区町村一覧を未収録です。JSONに追記してください。';
+      } else {
+        citySelect.disabled = false;
+        citySelect.appendChild(new Option('市区町村を選択', ''));
+        for (const c of cities) citySelect.appendChild(new Option(c, c));
+        cityHint.textContent = `${pref}の市区町村を表示中。`;
+      }
+      submitBtn.disabled = true;
+    });
+
+    // 市区町村選択で送信可に
+    citySelect.addEventListener('change', () => {
+      submitBtn.disabled = !(prefSelect.value && citySelect.value);
+    });
+
+    // 送信時の見本出力（実装先に合わせて書き換えてください）
+    document.getElementById('address-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = {
+        prefecture: prefSelect.value,
+        municipality: citySelect.value,
+      };
+      out.textContent = `選択結果 → 都道府県: ${data.prefecture} / 市区町村: ${data.municipality}`;
+      // 実際のアプリでは、ここでサーバに送る or フォーム送信
+      // e.target.submit();
+    });
+
+    // リセット時
+    document.getElementById('address-form').addEventListener('reset', () => {
+      setTimeout(() => { // ネイティブのリセット適用後に調整
+        citySelect.innerHTML = '<option value="">まず都道府県を選択してください</option>';
+        citySelect.disabled = true;
+        submitBtn.disabled = true;
+        cityHint.textContent = '選択した都道府県の市区町村を読み込みます。';
+        out.textContent = '';
+      });
+    });
+  </script>
+</body>
+</html>

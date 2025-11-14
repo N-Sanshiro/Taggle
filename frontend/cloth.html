@@ -11,16 +11,34 @@
     <div class="preview">
       <video id="clothCam" autoplay playsinline muted></video>
       <canvas id="clothCanvas" class="hidden"></canvas>
+
+      <div class="viewfinder" aria-hidden="true">
+        <div class="vf-box">
+          <span class="corner tl"></span>
+          <span class="corner tr"></span>
+          <span class="corner bl"></span>
+          <span class="corner br"></span>
+        </div>
+      </div>
     </div>
 
-    <p class="hint">服の写真を撮ろう</p>
+    <p class="hint">服の写真を撮ろう!</p>
 
-    <div class="actions">
-      <button id="clothSnap" class="btn-pill">撮影して保存</button>
-      <a href="index.html" class="btn-pill">やめる（ホームへ）</a>
+      <div class="actions">
+        <button id="clothSnap" class="btn-pill" type="button" aria-label="撮影">
+          <img src="/Taggle/frontend/camera.png" alt="カメラ" style="width:28px;height:28px;display:block;">
+        </button>
+        <button id="sendTag" class="btn-pill" style="display:none" disabled>送信</button>
+      </div>
+      <div class="footer-row">
+        <a href="index.html" class="btn-close" aria-label="閉じる">
+          <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </a>
+      </div>
     </div>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
