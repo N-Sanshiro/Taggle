@@ -190,7 +190,6 @@ $INIT_JSON = json_encode([
 
         <div class="actions">
           <button type="submit" class="primary" id="submit-btn">保存</button>
-          <button type="reset">リセット</button>
         </div>
         <pre id="out" class="hint" aria-live="polite" style="margin-top:8px"></pre>
       </form>

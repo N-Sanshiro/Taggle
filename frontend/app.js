@@ -2,7 +2,7 @@
 
 // app.js 冒頭
 const API_BASE = '/Taggle';                      // ここを固定
-const ANALYZE_ENDPOINT    = 'api/save_and_analyze.php';
+const ANALYZE_ENDPOINT    = 'http://localhost:8001/api/scan_tag_dify';
 const SAVE_IMAGE_ENDPOINT = 'api/save_image.php';
 const LS_HISTORY_KEY = 'TAGGLE_HISTORY';
 const SS_LATEST_KEY  = 'TAGGLE_LATEST';   // scan→result 渡し用
@@ -101,15 +101,25 @@ async function postImage(url, blob, extraForm = {}, { signal, onProgress } = {})
 
 /* 結果の抽出＆成形（Dify出力に柔軟に対応） */
 function extractResultObject(resp){
-  let obj = resp?.result ?? resp;
-  if(typeof obj==='string'){ try{ obj = JSON.parse(obj);}catch{} }
-  if((!obj || typeof obj!=='object') && resp?.raw){
-    const outputs = resp.raw?.data?.outputs ?? {};
-    obj = outputs.result_json ?? outputs.result ?? outputs.text ?? outputs.answer ?? obj;
-    if(typeof obj==='string'){ try{ obj = JSON.parse(obj);}catch{} }
+  // どの形式でも柔軟に拾う
+  let obj = resp?.result || resp;
+
+  // result が null のとき raw.outputs も見る
+  if (!obj || typeof obj !== 'object') {
+    obj = resp?.raw?.data?.outputs?.result_json 
+       || resp?.raw?.data?.outputs?.result 
+       || resp?.raw?.data?.outputs?.text 
+       || obj;
   }
-  return (obj && typeof obj==='object') ? obj : {};
+
+  // JSON文字列→パース
+  if (typeof obj === 'string') {
+    try{ obj = JSON.parse(obj); }catch{}
+  }
+
+  return (obj && typeof obj === 'object') ? obj : {};
 }
+
 function shapeResult(obj){
   const material = obj.material || obj.素材 || obj.materials || '-';
   const washTemp = (obj.wash_temp ?? obj.washTemp ?? obj.temperature ?? null);
@@ -165,7 +175,7 @@ async function pageScan(){
 
     // 送信中の進捗％を表示
     const json = await postImage(
-      joinUrl(API_BASE, ANALYZE_ENDPOINT),
+      ANALYZE_ENDPOINT,
       blob,
       { name:'' },
       {
@@ -444,9 +454,6 @@ async function pageHistory(){
 
 // ======== ResNet 埋め込みを使ったカメラ類似検索 ========
 // ======== ResNet 埋め込みを使ったカメラ類似検索 ========
-// ======== ResNet 埋め込みを使ったカメラ類似検索 ========
-// ======== ResNet 埋め込みを使ったカメラ類似検索 ========
-// ======== ResNet 埋め込みを使ったカメラ類似検索 ========
 async function setupHistoryFinderVec() {
   const panel   = document.getElementById('finderPanel');
   const cam     = document.getElementById('finderCam');
@@ -505,7 +512,7 @@ async function setupHistoryFinderVec() {
     btnSnap.disabled = true;
     info.textContent = '';
 
-    // ★ ここでページまるごと再読み込み（カメラも履歴一覧も初期状態に戻る）
+    // ページまるごと再読み込み（カメラも履歴一覧も初期状態に戻る）
     location.reload();
   };
 
@@ -539,6 +546,7 @@ async function setupHistoryFinderVec() {
 
   // 撮影 → /api/match_cloth_vec
   btnSnap.onclick = async () => {
+    // カメラが止まっていたら起動
     if (!cam.srcObject) {
       await startCamera();
       if (!cam.srcObject) return;
@@ -547,6 +555,7 @@ async function setupHistoryFinderVec() {
     try {
       setLoading(true, '検索中', '似ている服を探しています');
 
+      // 撮影してJPEGにする
       await snapshot(cam, canvas);
       const blob = await new Promise(res =>
         canvas.toBlob(b => res(b), 'image/jpeg', 0.9)
@@ -563,7 +572,8 @@ async function setupHistoryFinderVec() {
       fd.append('threshold', '0.8');
       fd.append('top_k', '10');
 
-      const r = await fetch('http://127.0.0.1:8001/api/match_cloth_vec', {
+      // ★ 類似検索API（FastAPI側）にPOST
+      const r = await fetch('http://localhost:8001/api/match_cloth_vec', {
         method: 'POST',
         body: fd,
       });
@@ -608,6 +618,7 @@ async function setupHistoryFinderVec() {
         }
       }
 
+      // その他のカードを後ろに追加
       for (const [, card] of byId) {
         root.appendChild(card);
       }
@@ -619,6 +630,7 @@ async function setupHistoryFinderVec() {
     }
   };
 }
+
 
 
 

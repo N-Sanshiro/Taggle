@@ -228,7 +228,7 @@ button { cursor: pointer; }
   border-radius:18px;
   box-shadow:0 8px 22px rgba(0,0,0,.15);
   padding:20px;
-  max-width:480px;
+  max-width:400px;
   margin:18px auto;
   color:#083e41;
 }
@@ -353,7 +353,7 @@ button { cursor: pointer; }
   grid-template-columns: 1fr;
   gap: 16px;
 }
-@media (min-width: 680px) {
+@media (min-width: 400px) {
   .history-grid { grid-template-columns: 1fr 1fr; }
 }
 
@@ -371,7 +371,7 @@ button { cursor: pointer; }
 /* =======================
    履歴一覧
 ======================= */
-.history-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:14px; margin-top:10px; }
+.history-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:14px; margin-top:10px; }
 .history-card { background:#fff; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,.12); padding:10px; }
 .thumb-row { display:flex; gap:8px; }
 .thumb-row img { width:50%; height:120px; object-fit:cover; border-radius:8px; background:#e7eef0; }
