@@ -6,7 +6,7 @@ header('Access-Control-Allow-Origin: *');
 $DB_HOST = '127.0.0.1';
 $DB_USER = 'root';
 $DB_PASS = '';
-$DB_NAME = 'taggle';
+$DB_NAME = 'taggledb';
 
 $DIFY_API_BASE    = rtrim(getenv('DIFY_API_BASE') ?: 'https://api.dify.ai', '/');
 $DIFY_API_KEY     = getenv('DIFY_API_KEY') ?: 'app-s31zJEqrNEGvq9WBv0ire9RU';

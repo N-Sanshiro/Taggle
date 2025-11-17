@@ -14,7 +14,7 @@ if ($uid <= 0) {
 }
 
 /* ---- DB 接続 ---- */
-$DB_HOST='127.0.0.1'; $DB_USER='root'; $DB_PASS=''; $DB_NAME='taggle';
+$DB_HOST='127.0.0.1'; $DB_USER='root'; $DB_PASS=''; $DB_NAME='taggledb';
 $mysqli = new mysqli($DB_HOST,$DB_USER,$DB_PASS,$DB_NAME);
 if ($mysqli->connect_errno) {
   echo json_encode(['ok'=>false, 'error'=>'db connect failed: '.$mysqli->connect_error], JSON_UNESCAPED_UNICODE);
