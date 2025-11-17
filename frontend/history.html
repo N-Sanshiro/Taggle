@@ -8,13 +8,45 @@
 </head>
 <body data-page="history">
   <div class="panel">
+    
+    <!-- 服を撮って検索 -->
+    <details id="finderPanel" class="finder-collapsible">
+    <summary>
+      📸 カメラ検索
+      <span class="hint">※開くとカメラが起動します</span>
+    </summary>
+
+    <section class="card" id="finderCard" style="margin:10px 0 14px;">
+      <div class="preview" id="finderPreview" style="max-width:520px; margin:8px auto; height:300px;">
+        <video id="finderCam" playsinline muted></video>
+        <canvas id="finderCanvas" class="hidden"></canvas>
+      </div>
+
+      <div class="actions" style="justify-content:center;">
+        <button class="btn-pill" id="finderStart" type="button">カメラ撮影</button>
+        <button class="btn-pill ok-btn" id="finderSnap" type="button" disabled>撮影して検索</button>
+      </div>
+
+      <div id="finderResult" style="margin-top:10px; text-align:center; color:#083e41;"></div>
+    </section>
+    </details>
     <div id="historyList" class="history-grid"></div>
     <div class="actions" style="margin-top:12px">
-      <a href="scan.html" class="btn-pill">新しく追加する</a>
-      <a href="index.html" class="btn-pill">ホームへ</a>
+      <a href="scan.html" class="btn-pill" style="text-decoration: none;">新しく追加する</a>
+      <a href="index.html" class="btn-pill" style="text-decoration: none;">ホームへ</a>
     </div>
   </div>
 
+  <div id="noMatchOverlay" class="no-match-overlay">
+  <div class="no-match-panel">
+    <p class="no-match-text">似ている服は見つかりませんでした。</p>
+    <button id="noMatchClose"
+            class="btn-pill ok-btn no-match-close"
+            type="button">
+      閉じる
+    </button>
+  </div>
+</div>
   <script src="app.js"></script>
 </body>
 </html>

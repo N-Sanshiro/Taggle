@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ログイン</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="text-align:center">
+  <div class="login-wrap">
+    <h1 class="login-title">ログイン</h1>
+
+    <!-- ここだけ class を追加 -->
+    <form action="../api/login.php" method="post" autocomplete="on" class="login-card login-form">
+      <input id="login-email" type="email" name="mail_address" required maxlength="255" placeholder="メールアドレス">
+
+      <input id="login-pass" type="password" name="password" required minlength="1" placeholder="パスワード">
+
+      <button type="submit" class="login-btn">ログイン</button>
+    </form>
+
+    <p class="login-link"><a href="signup.html">新規登録はこちら</a></p>
+  </div>
+
+  <div class="footer-row">
+      <a href="index.html" class="btn-close" aria-label="閉じる">
+        <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </a>
+    </div>
+</body>
+</html>

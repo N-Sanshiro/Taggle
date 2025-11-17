@@ -11,12 +11,23 @@
     <div class="preview">
       <video id="tagCam" autoplay playsinline muted></video>
       <canvas id="tagCanvas" class="hidden"></canvas>
+
+      <div class="viewfinder" aria-hidden="true">
+        <div class="vf-box">
+          <span class="corner tl"></span>
+          <span class="corner tr"></span>
+          <span class="corner bl"></span>
+          <span class="corner br"></span>
+        </div>
+      </div>
     </div>
 
-    <p class="hint">服のタグを読み取ろう！！</p>
+    <p class="hint" style="text-align: center;">服のタグを読み取ろう！！</p>
 
     <div class="actions">
-      <button id="tagSnap" class="btn-pill">撮影して解析</button>
+      <button id="tagSnap" class="btn-pill" type="button" aria-label="撮影">
+        <img src="/Taggle/frontend/camera.png" alt="カメラ" style="width:28px;height:28px;display:block;">
+      </button>
       <button id="sendTag" class="btn-pill" style="display:none" disabled>送信</button>
     </div>
 
@@ -41,5 +52,12 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.body.dataset.page === 'scan') {
+      pageScan();               // ← これでカメラ起動
+    }
+  });
+</script>
 </body>
 </html>

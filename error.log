@@ -1,0 +1,5 @@
+[2025-11-06 00:26:10] signup.php: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'taggle.users' doesn't exist
+[2025-11-06 00:27:44] signup.php: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'taggle.users' doesn't exist
+[2025-11-06 00:28:43] signup.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list'
+[2025-11-06 00:29:35] signup.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list'
+[2025-11-06 00:32:53] login.php: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'taggle.users' doesn't exist

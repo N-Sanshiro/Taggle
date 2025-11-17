@@ -1,0 +1,309 @@
+<?php
+/* ===== mypage.php（1ファイル完結） ===== */
+declare(strict_types=1);
+session_start();
+
+/* --- ログイン必須 --- */
+if (!isset($_SESSION['uid'])) {
+  header('Location: ../frontend/login.html');
+  exit;
+}
+
+/* --- DB接続 --- */
+require_once __DIR__ . '/db.php';
+$pdo = db();
+
+$uid = 1; 
+//(int)$_SESSION['uid'];
+$user_name = $_SESSION['user_name'] ?? 'ユーザー';
+
+/* ===== API（同一ファイル） ===== */
+$action = $_GET['action'] ?? '';
+
+if ($action === 'save_region' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+  header('Content-Type: application/json; charset=utf-8');
+  try {
+    $raw = file_get_contents('php://input');
+    $js  = json_decode($raw, true) ?: [];
+
+    $prefecture = trim((string)($js['prefecture'] ?? ''));
+    $timezone   = trim((string)($js['timezone'] ?? 'Asia/Tokyo'));
+    $lat        = isset($js['latitude'])  ? (float)$js['latitude']  : null;
+    $lon        = isset($js['longitude']) ? (float)$js['longitude'] : null;
+
+    if ($prefecture === '') {
+      http_response_code(400);
+      echo json_encode(['ok'=>false,'error'=>'prefecture is required'], JSON_UNESCAPED_UNICODE);
+      exit;
+    }
+
+    // id_user を UNIQUE にしておくと安全（ALTER TABLE regions ADD UNIQUE KEY uq_regions_user(id_user);）
+    $pdo->beginTransaction();
+    $stmt = $pdo->prepare('
+      INSERT INTO regions (id_user, prefecture, latitude, longitude, timezone)
+      VALUES (:uid, :pref, :lat, :lon, :tz)
+      ON DUPLICATE KEY UPDATE
+        prefecture = VALUES(prefecture),
+        latitude   = VALUES(latitude),
+        longitude  = VALUES(longitude),
+        timezone   = VALUES(timezone)
+    ');
+    $stmt->execute([
+      ':uid'=>$uid, ':pref'=>$prefecture, ':lat'=>$lat, ':lon'=>$lon, ':tz'=>$timezone
+    ]);
+    $pdo->commit();
+
+    echo json_encode(['ok'=>true], JSON_UNESCAPED_UNICODE);
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    http_response_code(500);
+    echo json_encode(['ok'=>false, 'error'=>'db error: '.$e->getMessage()], JSON_UNESCAPED_UNICODE);
+  }
+  exit;
+}
+
+/* ===== 現在の登録情報とタグ件数 ===== */
+$curRegion = ['prefecture'=>null, 'timezone'=>'Asia/Tokyo'];
+try {
+  $st = $pdo->prepare('SELECT prefecture, timezone FROM regions WHERE id_user=:uid LIMIT 1');
+  $st->execute([':uid'=>$uid]);
+  if ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+    $curRegion['prefecture'] = $row['prefecture'] ?: null;
+    $curRegion['timezone']   = $row['timezone']   ?: 'Asia/Tokyo';
+  }
+} catch (Throwable $e) {}
+
+$tagCount = 0;
+try {
+  $st = $pdo->prepare('SELECT COUNT(*) FROM tags WHERE id_user=:uid');
+  $st->execute([':uid'=>$uid]);
+  $tagCount = (int)($st->fetchColumn() ?: 0);
+} catch (Throwable $e) {}
+
+/* JS向け初期値 */
+$INIT_JSON = json_encode([
+  'prefecture' => $curRegion['prefecture'],
+  'timezone'   => $curRegion['timezone'],
+  'tagCount'   => $tagCount
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taggle - マイページ</title>
+  <link rel="stylesheet" href="../frontend/style.css" />
+  <style>
+    /* ====== mypage 追加CSS（最小） ====== */
+    .panel{ max-width:720px; margin:0 auto; padding:14px; }
+
+    /* ヘッダー：名前＋ログアウト */
+    .user-header{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 6px 18px rgba(0,0,0,.12);
+      margin:0 0 16px;
+    }
+    .user-header h1{ margin:0; font-size:18px; }
+    .user-header .btn-pill{ font-size:.8em; padding:6px 12px; }
+
+    /* 情報カード（見本風） */
+    .info-card{
+      background:#fff; border-radius:12px; padding:14px 16px;
+      box-shadow:0 4px 14px rgba(0,0,0,.08);
+      margin-bottom:16px;
+    }
+    .kv-list{ margin:0; }
+    .kv-row{
+      display:grid; grid-template-columns: 120px 1fr; gap:12px;
+      padding:10px 0; border-bottom:1px solid #f1f1f4;
+    }
+    .kv-row:last-child{ border-bottom:none; }
+    .kv-row dt{
+      color:#777; font-weight:700; letter-spacing:.02em;
+      align-self:center;
+    }
+    .kv-row dd{
+      margin:0; font-size:16px; font-weight:700; color:#222; line-height:1.7;
+    }
+
+    /* 通常カード（フォーム用） */
+    .card{ background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,.12); margin-bottom:16px; }
+    .card h2{ margin:0 0 10px; font-size:16px; }
+    .row{ display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:12px; }
+    select,button,input { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #d6d6db; }
+    .primary{ background:#1e88e5; color:#fff; border-color:transparent; cursor:pointer; }
+    .actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
+    .hint{ font-size:12px; color:#666; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+
+    <!-- ① 名前＋ログアウト -->
+    <section class="user-header">
+      <h1>ようこそ、<?= htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8'); ?> さん</h1>
+      <form action="../api/signout.php" method="post" style="margin:0;">
+        <button type="submit" class="btn-pill">ログアウト</button>
+      </form>
+    </section>
+
+    <!-- ② 見本風 情報カード -->
+    <section class="info-card" aria-labelledby="info-title">
+      <h2 id="info-title" class="sr-only">アカウント情報</h2>
+      <dl class="kv-list">
+        <div class="kv-row">
+          <dt>ニックネーム</dt>
+          <dd><?= htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8'); ?></dd>
+        </div>
+        <div class="kv-row">
+          <dt>登録都道府県</dt>
+          <dd id="cur-pref"><?= htmlspecialchars($curRegion['prefecture'] ?? '未設定', ENT_QUOTES, 'UTF-8'); ?></dd>
+        </div>
+        <div class="kv-row">
+          <dt>タグ合計</dt>
+          <dd><span id="tag-count"><?= (int)$tagCount ?></span> 回</dd>
+        </div>
+        <div class="kv-row">
+          <dt>タイムゾーン</dt>
+          <dd id="cur-tz"><?= htmlspecialchars($curRegion['timezone'] ?? 'Asia/Tokyo', ENT_QUOTES, 'UTF-8'); ?></dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- ③ 変更フォーム -->
+    <section class="card" aria-labelledby="addr-title">
+      <h2 id="addr-title">お住まいの都道府県を変更</h2>
+      <form id="pref-form">
+        <div class="row">
+          <label for="pref">都道府県 <span class="hint">（必須）</span></label>
+          <select id="pref" name="prefecture" required>
+            <option value="">選択してください</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label for="tz">タイムゾーン</label>
+          <input id="tz" name="timezone" type="text"
+                 value="<?= htmlspecialchars($curRegion['timezone'] ?? 'Asia/Tokyo', ENT_QUOTES, 'UTF-8'); ?>">
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary" id="submit-btn">保存</button>
+        </div>
+        <pre id="out" class="hint" aria-live="polite" style="margin-top:8px"></pre>
+      </form>
+    </section>
+
+    <div class="footer-row">
+      <a href="../frontend/index.html" class="btn-close" aria-label="閉じる">
+        <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </a>
+    </div>
+  </main>
+
+  <script>
+  // ===== 初期値（PHPから受け取り） =====
+  const INIT = <?= $INIT_JSON ?>;
+
+  // 都道府県リスト
+  const PREFS = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+    "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+    "新潟県","富山県","石川県","福井県","山梨県","長野県",
+    "岐阜県","静岡県","愛知県","三重県",
+    "滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県",
+    "鳥取県","島根県","岡山県","広島県","山口県",
+    "徳島県","香川県","愛媛県","高知県",
+    "福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"
+  ];
+
+  // 都道府県→代表座標
+  const PREF_COORDS = {
+    "北海道":{lat:43.06417,lon:141.34694},"青森県":{lat:40.82444,lon:140.74000},
+    "岩手県":{lat:39.70361,lon:141.15250},"宮城県":{lat:38.26889,lon:140.87194},
+    "秋田県":{lat:39.71861,lon:140.10250},"山形県":{lat:38.24056,lon:140.36333},
+    "福島県":{lat:37.75,lon:140.46778},"茨城県":{lat:36.34139,lon:140.44667},
+    "栃木県":{lat:36.56583,lon:139.88361},"群馬県":{lat:36.39111,lon:139.06083},
+    "埼玉県":{lat:35.85694,lon:139.64889},"千葉県":{lat:35.60472,lon:140.12333},
+    "東京都":{lat:35.68944,lon:139.69167},"神奈川県":{lat:35.44778,lon:139.6425},
+    "新潟県":{lat:37.90222,lon:139.02361},"富山県":{lat:36.69528,lon:137.21139},
+    "石川県":{lat:36.59444,lon:136.62556},"福井県":{lat:36.06528,lon:136.22194},
+    "山梨県":{lat:35.66389,lon:138.56833},"長野県":{lat:36.65139,lon:138.18111},
+    "岐阜県":{lat:35.39111,lon:136.72222},"静岡県":{lat:34.97694,lon:138.38306},
+    "愛知県":{lat:35.18028,lon:136.90667},"三重県":{lat:34.73028,lon:136.50861},
+    "滋賀県":{lat:35.00444,lon:135.86833},"京都府":{lat:35.02139,lon:135.75556},
+    "大阪府":{lat:34.68639,lon:135.52},"兵庫県":{lat:34.69139,lon:135.18306},
+    "奈良県":{lat:34.68528,lon:135.83278},"和歌山県":{lat:34.22611,lon:135.1675},
+    "鳥取県":{lat:35.50361,lon:134.23833},"島根県":{lat:35.47222,lon:133.05056},
+    "岡山県":{lat:34.66167,lon:133.935},"広島県":{lat:34.39639,lon:132.45944},
+    "山口県":{lat:34.18583,lon:131.47139},"徳島県":{lat:34.06583,lon:134.55944},
+    "香川県":{lat:34.34028,lon:134.04333},"愛媛県":{lat:33.84167,lon:132.76611},
+    "高知県":{lat:33.55972,lon:133.53111},"福岡県":{lat:33.60639,lon:130.41806},
+    "佐賀県":{lat:33.24944,lon:130.29889},"長崎県":{lat:32.74472,lon:129.87361},
+    "熊本県":{lat:32.78972,lon:130.74167},"大分県":{lat:33.23806,lon:131.6125},
+    "宮崎県":{lat:31.91111,lon:131.42389},"鹿児島県":{lat:31.56028,lon:130.55806},
+    "沖縄県":{lat:26.2125,lon:127.68111}
+  };
+
+  // 要素
+  const curPrefEl  = document.getElementById('cur-pref');
+  const curTzEl    = document.getElementById('cur-tz');
+  const tagCountEl = document.getElementById('tag-count');
+  const prefEl     = document.getElementById('pref');
+  const tzEl       = document.getElementById('tz');
+  const outEl      = document.getElementById('out');
+  const submitBtn  = document.getElementById('submit-btn');
+
+  // 選択肢生成
+  PREFS.forEach(p => prefEl.appendChild(new Option(p, p)));
+
+  // 初期値
+  if (INIT.prefecture) prefEl.value = INIT.prefecture;
+  if (INIT.timezone)   tzEl.value   = INIT.timezone;
+  tagCountEl.textContent = String(INIT.tagCount ?? 0);
+  submitBtn.disabled = !prefEl.value;
+
+  // 保存
+  document.getElementById('pref-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pref = prefEl.value;
+    const tz   = tzEl.value || 'Asia/Tokyo';
+    const c    = PREF_COORDS[pref] || null;
+    const latitude  = c ? Number(c.lat.toFixed(6)) : null;
+    const longitude = c ? Number(c.lon.toFixed(6)) : null;
+
+    try {
+      const r  = await fetch('?action=save_region', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify({ prefecture: pref, latitude, longitude, timezone: tz })
+      });
+      const js = await r.json();
+      if (!js.ok) throw new Error(js.error || '保存に失敗');
+      outEl.textContent = '保存しました。';
+
+      // 上のカードも更新
+      curPrefEl.textContent = pref || '未設定';
+      curTzEl.textContent   = tz || 'Asia/Tokyo';
+    } catch (e) {
+      outEl.textContent = '保存エラー: ' + e.message;
+    }
+  });
+
+  // リセット
+  document.getElementById('pref-form').addEventListener('reset', () => {
+    setTimeout(() => {
+      submitBtn.disabled = true;
+      outEl.textContent = '';
+      tzEl.value = 'Asia/Tokyo';
+    });
+  });
+
+  // 選択で活性
+  prefEl.addEventListener('change', () => { submitBtn.disabled = !prefEl.value; });
+  </script>
+</body>
+</html>
