@@ -13,7 +13,6 @@
     </div>
 
     <nav class="menu">
-<<<<<<< HEAD
       <a class="menu-btn tag-item" href="../frontend/scan.html" style="top:40px;">
         <span class="tag-icon">🏷️</span>
         <span class="tag-text">服のタグ読み取り</span>
@@ -28,11 +27,6 @@
         <span class="tag-icon">👤</span>
         <span class="tag-text">マイページ</span>
       </a>
-=======
-      <a class="menu-btn" href="scan.html">服のタグ読み取り</a>
-      <a class="menu-btn" href="history.html">過去のタグ</a>
-      <a class="menu-btn" href="signup.html">マイページ</a>
->>>>>>> 291f4176408db9339f2fd840182dfe460447dfec
     </nav>
   </div>
 
@@ -46,22 +40,30 @@
 
   <!-- 情報モーダル -->
   <div id="infoModal" class="modal" style="display:none">
-    <div class="modal-content">
-      <span id="closeModal" class="close" aria-label="閉じる">&times;</span>
-      <h2>Taggle（タグル）とは</h2>
-      <p>
-        Taggleは、服のタグをカメラで読み取り、素材情報や洗濯方法などを自動解析して記録・提案を行うシステムです。<br /><br />
-        カメラで撮影したタグ画像は、AI（Difyを利用）に送られ、解析結果が表示・保存されます。
-      </p>
-      <ul>
-        <li>タグ画像の読み取りと登録</li>
-        <li>外観によるアイテム保存</li>
-        <li>天気に応じた洗濯アドバイス</li>
-        <li>履歴・マイページでの管理</li>
-      </ul>
-      <p>このMVP（試作版）は学習・研究目的で作られています。</p>
+  <div class="modal-content">
+    <span id="closeModal" class="close" aria-label="閉じる">&times;</span>
+    <h2>Taggle（タグル）とは</h2>
+
+    <!-- 🎥 ここに動画を追加 -->
+    <div class="video-wrapper">
+      <video controls autoplay muted playsinline>
+        <source src="videos/taggle.mp4" type="video/mp4">
+      </video>
     </div>
-  </div>
+    <!-- ↑ この部分だけ追記すればOK -->
+
+    <p>
+      Taggleは、服のタグをカメラで読み取り、素材情報や洗濯方法などを自動解析して記録・提案を行うシステムです。<br /><br />
+      カメラで撮影したタグ画像は、AI（Difyを利用）に送られ、解析結果が表示・保存されます。
+    </p>
+    <ul>
+      <li>タグ画像の読み取りと登録</li>
+      <li>外観によるアイテム保存</li>
+      <li>外観からの検索機能</li>
+      <li>天気に応じた洗濯アドバイス</li>
+    </ul>
+</div>
+
 
   <script src="app.js"></script>
   <script>
