@@ -5,7 +5,7 @@ session_start();
 
 /* --- ログイン必須 --- */
 if (!isset($_SESSION['uid'])) {
-  header('Location: ../frontend/login.html');
+  header('Location: /Taggle/login.html');
   exit;
 }
 
