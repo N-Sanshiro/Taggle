@@ -37,7 +37,7 @@ try {
   $_SESSION['mail']      = $mail_address;
 
   // ログイン後の遷移先（フロントのマイページHTMLに合わせています）
-  header('Location: mypage.php');
+  header('Location: /Taggle/mypage.html');
   exit;
 
 } catch (Throwable $e) {
