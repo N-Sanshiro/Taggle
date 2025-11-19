@@ -143,7 +143,7 @@ $INIT_JSON = json_encode([
     <!-- ① 名前＋ログアウト -->
     <section class="user-header">
       <h1>ようこそ、<?= htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8'); ?> さん</h1>
-      <form action="/Taggle/signout.php" method="post" style="margin:0;">
+      <form action="/Taggle/api/signout.php" method="post" style="margin:0;">
         <button type="submit" class="btn-pill">ログアウト</button>
       </form>
     </section>
