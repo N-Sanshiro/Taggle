@@ -1,8 +1,7 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 session_start();
-$uid = 1;
-//(int)($_SESSION['uid'] ?? 0);
+$uid =(int)($_SESSION['uid'] ?? 0);
 if ($uid <= 0) { echo json_encode(['ok'=>false,'error'=>'not logged in']); exit; }
 
 $DB_HOST='127.0.0.1'; $DB_USER='root'; $DB_PASS=''; $DB_NAME='taggledb';
