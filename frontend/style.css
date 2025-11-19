@@ -37,7 +37,7 @@ body {
 }
 .logo {
   display: block;
-  width: 100%;
+  width: 90%;
   height: auto;
   border-radius: 6px;
   object-fit: contain;
