@@ -2,7 +2,7 @@
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
-/* ログイン必須: セッションから uid を取得 */
+/* セッション uid */
 $uid = (int)($_SESSION['uid'] ?? 0);
 if ($uid <= 0) {
     echo json_encode(['ok' => false, 'error' => 'not logged in']);
@@ -15,7 +15,7 @@ if ($mysqli->connect_errno) {
     echo json_encode([
         'ok'    => false,
         'error' => 'db connect failed: ' . $mysqli->connect_error,
-    ], JSON_UNESCAPED_UNICODE);
+    ]);
     exit;
 }
 $mysqli->set_charset('utf8mb4');
@@ -25,44 +25,27 @@ $sql = "SELECT prefecture, latitude, longitude, timezone
         FROM regions
         WHERE id_user = ?
         LIMIT 1";
+
 $stmt = $mysqli->prepare($sql);
 if (!$stmt) {
     echo json_encode([
-        'ok'    => false,
-        'error' => 'prepare: ' . $mysqli->error,
-    ], JSON_UNESCAPED_UNICODE);
+        'ok' => false,
+        'error' => 'prepare: ' . $mysqli->error
+    ]);
     exit;
 }
 
 $stmt->bind_param('i', $uid);
-if (!$stmt->execute()) {
-    echo json_encode([
-        'ok'    => false,
-        'error' => 'execute: ' . $stmt->error,
-    ], JSON_UNESCAPED_UNICODE);
-    $stmt->close();
-    $mysqli->close();
-    exit;
-}
-
+$stmt->execute();
 $res = $stmt->get_result();
 $row = $res->fetch_assoc();
 
 $stmt->close();
 $mysqli->close();
 
-/* レコードが無い場合 */
 if (!$row) {
-    echo json_encode([
-        'ok'   => false,
-        'error'=> 'not found',
-        'row'  => null,
-    ], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['ok' => false, 'row' => null]);
     exit;
 }
 
-/* 正常レスポンス */
-echo json_encode([
-    'ok'  => true,
-    'row' => $row,   // {prefecture, latitude, longitude, timezone}
-], JSON_UNESCAPED_UNICODE);
+echo json_encode(['ok' => true, 'row' => $row], JSON_UNESCAPED_UNICODE);
