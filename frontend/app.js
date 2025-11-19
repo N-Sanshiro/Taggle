@@ -370,7 +370,7 @@ async function pageHistory(){
   root.innerHTML = '<p>読み込み中...</p>';
 
   try {
-    const r = await fetch('../api/get_history.php', { credentials: 'same-origin' });
+    const r = await fetch('/Taggle/api/get_history.php', { credentials: 'same-origin' });
     const tx = await r.text();
 
     let js;
