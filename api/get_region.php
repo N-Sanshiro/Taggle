@@ -1,20 +1,68 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 session_start();
-$uid =(int)($_SESSION['uid'] ?? 0);
-if ($uid <= 0) { echo json_encode(['ok'=>false,'error'=>'not logged in']); exit; }
 
-$DB_HOST='127.0.0.1'; $DB_USER='root'; $DB_PASS=''; $DB_NAME='taggledb';
-$mysqli = new mysqli($DB_HOST,$DB_USER,$DB_PASS,$DB_NAME);
-if ($mysqli->connect_errno) { echo json_encode(['ok'=>false,'error'=>'db connect failed']); exit; }
+/* ログイン必須: セッションから uid を取得 */
+$uid = (int)($_SESSION['uid'] ?? 0);
+if ($uid <= 0) {
+    echo json_encode(['ok' => false, 'error' => 'not logged in']);
+    exit;
+}
+
+/* DB 接続 */
+$mysqli = new mysqli('127.0.0.1', 'root', '', 'taggledb');
+if ($mysqli->connect_errno) {
+    echo json_encode([
+        'ok'    => false,
+        'error' => 'db connect failed: ' . $mysqli->connect_error,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 $mysqli->set_charset('utf8mb4');
 
-$sql = "SELECT id_region, id_user, prefecture, latitude, longitude, timezone
-        FROM regions WHERE id_user = ? LIMIT 1";
+/* regions から 1件取得 */
+$sql = "SELECT prefecture, latitude, longitude, timezone
+        FROM regions
+        WHERE id_user = ?
+        LIMIT 1";
 $stmt = $mysqli->prepare($sql);
+if (!$stmt) {
+    echo json_encode([
+        'ok'    => false,
+        'error' => 'prepare: ' . $mysqli->error,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $stmt->bind_param('i', $uid);
-$stmt->execute();
+if (!$stmt->execute()) {
+    echo json_encode([
+        'ok'    => false,
+        'error' => 'execute: ' . $stmt->error,
+    ], JSON_UNESCAPED_UNICODE);
+    $stmt->close();
+    $mysqli->close();
+    exit;
+}
+
 $res = $stmt->get_result();
 $row = $res->fetch_assoc();
 
-echo json_encode(['ok'=>true, 'row'=>$row ?: null], JSON_UNESCAPED_UNICODE);
+$stmt->close();
+$mysqli->close();
+
+/* レコードが無い場合 */
+if (!$row) {
+    echo json_encode([
+        'ok'   => false,
+        'error'=> 'not found',
+        'row'  => null,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/* 正常レスポンス */
+echo json_encode([
+    'ok'  => true,
+    'row' => $row,   // {prefecture, latitude, longitude, timezone}
+], JSON_UNESCAPED_UNICODE);
