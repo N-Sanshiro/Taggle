@@ -21,7 +21,7 @@ if ($prefecture === '') { echo json_encode(['ok'=>false,'error'=>'prefecture req
 $latitude  = ($latitude  === null ? null : (float)$latitude);
 $longitude = ($longitude === null ? null : (float)$longitude);
 
-$mysqli = new mysqli('127.0.0.1', 'root', '', 'taggledb');
+$mysqli = new mysqli('127.0.0.1', 'root', '1toclass!SH0', 'taggledb');
 if ($mysqli->connect_errno) {
   echo json_encode(['ok'=>false,'error'=>'db connect failed: '.$mysqli->connect_error]);
   exit;
