@@ -196,7 +196,7 @@ $INIT_JSON = json_encode([
     </section>
 
     <div class="footer-row">
-      <a href="../frontend/index.html" class="btn-close" aria-label="閉じる">
+      <a href="/Taggle/index.html" class="btn-close" aria-label="閉じる">
         <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
         </svg>
