@@ -16,7 +16,7 @@ $uid = (int)($_SESSION['uid'] ?? 0);
 // }
 
 /* DB接続 */
-$mysqli = new mysqli('127.0.0.1', 'root', '', 'taggledb');
+$mysqli = new mysqli('127.0.0.1', 'root', '1toclass!SH0', 'taggledb');
 if ($mysqli->connect_errno) {
     echo json_encode([
         'ok'    => false,
