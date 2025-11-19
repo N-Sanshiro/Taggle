@@ -2,7 +2,7 @@
 
 // app.js 冒頭
 const API_BASE = '/Taggle';                      // ここを固定
-const ANALYZE_ENDPOINT    = 'http://localhost:8001/backend/scan_tag_dify.py';
+const ANALYZE_ENDPOINT    = '/backend/scan_tag_dify.py';
 const SAVE_IMAGE_ENDPOINT = 'api/save_image.php';
 const LS_HISTORY_KEY = 'TAGGLE_HISTORY';
 const SS_LATEST_KEY  = 'TAGGLE_LATEST';   // scan→result 渡し用
@@ -324,7 +324,7 @@ async function pageCloth(){
             fd.append('user_id', String(userId));
             fd.append('name', '');   // 服の名前は不要なので空文字（null扱い）
 
-            await fetch('http://127.0.0.1:8001/api/register_cloth_vec', {
+            await fetch("/backend/api/register_cloth_vec", {
               method: 'POST',
               body: fd
             });
@@ -573,7 +573,7 @@ async function setupHistoryFinderVec() {
       fd.append('top_k', '10');
 
       // ★ 類似検索API（FastAPI側）にPOST
-      const r = await fetch('http://localhost:8001/api/match_cloth_vec', {
+      const r = await fetch('/backend/api/match_cloth_vec', {
         method: 'POST',
         body: fd,
       });
