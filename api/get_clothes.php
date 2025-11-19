@@ -14,10 +14,8 @@ try {
   exit;
 }
 
-$user_id = 1;
-//isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
-$limit   = 5;
-isset($_GET['limit'])   ? max(1, min(1000, (int)$_GET['limit'])) : 100;
+$user_id = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+$limit   = isset($_GET['limit'])   ? max(1, min(1000, (int)$_GET['limit'])) : 100;
 
 // ベースURL（例: http://localhost）とアプリ配下（/Taggle）
 $BASE_URL = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];

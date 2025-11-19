@@ -1,14 +1,23 @@
 <?php
+// ===== デバッグ用（必ず一番上） =====
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
 /* ---- セッション確認 ---- */
-if (!isset($_SESSION['uid'])) {
+/*
+ * ログイン時に $_SESSION['id_user'] をセットしている想定。
+ * 別のキーならここを合わせてください（user_id など）。
+ */
+if (!isset($_SESSION['id_user'])) {
   http_response_code(401);
-  echo json_encode(['ok'=>false, 'error'=>'not logged in']);
+  echo json_encode(['ok'=>false, 'error'=>'not logged in', 'session'=>$_SESSION], JSON_UNESCAPED_UNICODE);
   exit;
 }
-$uid = (int)$_SESSION['uid'];
+$uid = (int)$_SESSION['id_user'];
 
 /* ---- DB 接続 ---- */
 $DB_HOST = '127.0.0.1';
@@ -18,7 +27,8 @@ $DB_NAME = 'taggledb';
 
 $mysqli = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
 if ($mysqli->connect_errno) {
-  echo json_encode(['ok'=>false, 'error'=>'db connect failed: '.$mysqli->connect_error], JSON_UNESCAPED_UNICODE);
+  http_response_code(500);
+  echo json_encode(['ok'=>false, 'step'=>'db_connect', 'error'=>$mysqli->connect_error], JSON_UNESCAPED_UNICODE);
   exit;
 }
 $mysqli->set_charset('utf8mb4');
@@ -26,11 +36,12 @@ $mysqli->set_charset('utf8mb4');
 /* ---- POST検証 ---- */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   http_response_code(405);
-  echo json_encode(['ok'=>false,'error'=>'POST only']);
+  echo json_encode(['ok'=>false,'error'=>'POST only'], JSON_UNESCAPED_UNICODE);
   exit;
 }
 if (!isset($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
-  echo json_encode(['ok'=>false,'error'=>'no file']);
+  http_response_code(400);
+  echo json_encode(['ok'=>false,'error'=>'no file'], JSON_UNESCAPED_UNICODE);
   exit;
 }
 
@@ -40,35 +51,42 @@ $name_cloth   = trim($_POST['name_cloth'] ?? '');
 
 $tmp   = $_FILES['file']['tmp_name'];
 $bytes = file_get_contents($tmp);
-
-/* ---- clothes 保存 ---- */
-if ($name_cloth === '') {
-  $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image) VALUES (?, ?)');
-  if (!$stmt) {
-    echo json_encode(['ok'=>false,'error'=>'db prepare failed: '.$mysqli->error]);
-    exit;
-  }
-  $null = NULL;
-  $stmt->bind_param('ib', $uid, $null);
-  $stmt->send_long_data(1, $bytes);
-} else {
-  $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, ?)');
-  if (!$stmt) {
-    echo json_encode(['ok'=>false,'error'=>'db prepare failed: '.$mysqli->error]);
-    exit;
-  }
-  $null = NULL;
-  $stmt->bind_param('ibs', $uid, $null, $name_cloth);
-  $stmt->send_long_data(1, $bytes);
-}
-
-$ok = $stmt->execute();
-if (!$ok) {
-  echo json_encode(['ok'=>false,'error'=>'db execute failed: '.$stmt->error], JSON_UNESCAPED_UNICODE);
+if ($bytes === false) {
+  http_response_code(500);
+  echo json_encode(['ok'=>false,'step'=>'read_file','error'=>'cannot read tmp file'], JSON_UNESCAPED_UNICODE);
   exit;
 }
-$cloth_id = $stmt->insert_id;
-$stmt->close();
+
+/* ---- clothes 保存 ---- */
+try {
+  if ($name_cloth === '') {
+    $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image) VALUES (?, ?)');
+    if (!$stmt) {
+      throw new Exception('db prepare failed: '.$mysqli->error);
+    }
+    $null = NULL;
+    $stmt->bind_param('ib', $uid, $null);
+    $stmt->send_long_data(1, $bytes);
+  } else {
+    $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, ?)');
+    if (!$stmt) {
+      throw new Exception('db prepare failed: '.$mysqli->error);
+    }
+    $null = NULL;
+    $stmt->bind_param('ibs', $uid, $null, $name_cloth);
+    $stmt->send_long_data(1, $bytes);
+  }
+
+  if (!$stmt->execute()) {
+    throw new Exception('db execute failed: '.$stmt->error);
+  }
+  $cloth_id = $stmt->insert_id;
+  $stmt->close();
+} catch (Exception $e) {
+  http_response_code(500);
+  echo json_encode(['ok'=>false,'step'=>'insert_clothes','error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE);
+  exit;
+}
 
 /* ---- relative 紐付け保存 ---- */
 $linked = null;
@@ -88,10 +106,9 @@ if ($tag_image_id > 0 && $cloth_id > 0) {
 }
 
 /* ---- 完了レスポンス ---- */
+http_response_code(200);
 echo json_encode([
   'ok'      => true,
   'cloth_id'=> $cloth_id,
   'linked'  => $linked
 ], JSON_UNESCAPED_UNICODE);
-
-?>
