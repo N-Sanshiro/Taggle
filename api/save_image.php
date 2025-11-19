@@ -12,19 +12,19 @@ session_start();
  * ログイン時に $_SESSION['id_user'] をセットしている想定。
  * 別のキーならここを合わせてください（user_id など）。
  */
-if (isset($_SESSION['id_user'])) {
+/*if (isset($_SESSION['id_user'])) {
     $uid = (int)$_SESSION['id_user'];
 } elseif (isset($_SESSION['uid'])) {
     $uid = (int)$_SESSION['uid'];
 } else {
     $uid = 1;   // ← どうしても嫌ならここで 401 にする
-}
-
-if (!isset($_SESSION['id_user'])) {
+}*/
+ $uid = 1;
+/*if (!isset($_SESSION['id_user'])) {
   http_response_code(401);
   echo json_encode(['ok'=>false, 'error'=>'not logged in', 'session'=>$_SESSION], JSON_UNESCAPED_UNICODE);
   exit;
-}
+}*/
 
 /* ---- DB 接続 ---- */
 $DB_HOST = '127.0.0.1';
