@@ -758,7 +758,6 @@ window.addEventListener('load', async () => {
     if (!iconToday || !iconTomorrow) {
       return;
     }
-    const data = await fetchWeather();
 
     // 今日
     const t  = Math.round(data.current.temperature_2m);
