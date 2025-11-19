@@ -2,7 +2,7 @@
 
 // app.js 冒頭
 const API_BASE = '/Taggle';                      // ここを固定
-const ANALYZE_ENDPOINT    = '/Taggle/backend/scan_tag_dify.py';
+const ANALYZE_ENDPOINT    = '/Taggle/backend/api/scan_tag_dify';
 const SAVE_IMAGE_ENDPOINT = 'api/save_image.php';
 const LS_HISTORY_KEY = 'TAGGLE_HISTORY';
 const SS_LATEST_KEY  = 'TAGGLE_LATEST';   // scan→result 渡し用
