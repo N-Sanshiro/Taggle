@@ -64,7 +64,7 @@
   async function getUserRegion() {
     const fallback = { lat: 34.06583, lon: 134.55944, tz: 'Asia/Tokyo', prefecture: '徳島県' };
     try {
-      const r = await fetch('../api/get_region.php', { credentials: 'same-origin' });
+      const r = await fetch('/Taggle/api/get_region.php', { credentials: 'same-origin' });
       const js = await r.json();
       if (!js.ok || !js.row) return fallback;
 
