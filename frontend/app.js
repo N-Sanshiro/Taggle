@@ -751,6 +751,7 @@ function renderAdvice(el, linesOrText){
   el.innerHTML = `<ul class="advice-list">${html}</ul>`;
 }
 
+/*
 window.addEventListener('load', async () => {
   try {
     const iconToday = document.getElementById('wxIconToday');
@@ -788,6 +789,7 @@ window.addEventListener('load', async () => {
     if (el) el.textContent = '天気情報の取得に失敗しました。';
   }
 });
+*/
 
 /* --- ページロード時に呼び出す処理 --- */
 function ensureLoading() {
