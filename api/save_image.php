@@ -46,9 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   exit;
 }
 if (!isset($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
-  http_response_code(400);
-  echo json_encode(['ok'=>false,'error'=>'no file'], JSON_UNESCAPED_UNICODE);
-  exit;
+    http_response_code(400);
+    echo json_encode([
+        'ok'   => false,
+        'step' => 'check_file',
+        'error'=> 'no file',
+        'files'=> $_FILES,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 /* ---- パラメータ取得 ---- */
@@ -60,9 +65,13 @@ $name_cloth = trim($name_cloth_raw) === '' ? null : trim($name_cloth_raw);
 $tmp   = $_FILES['file']['tmp_name'];
 $bytes = file_get_contents($tmp);
 if ($bytes === false) {
-  http_response_code(500);
-  echo json_encode(['ok'=>false,'step'=>'read_file','error'=>'cannot read tmp file'], JSON_UNESCAPED_UNICODE);
-  exit;
+    http_response_code(500);
+    echo json_encode([
+        'ok'   => false,
+        'step' => 'read_file',
+        'error'=> 'cannot read tmp file',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 /* ---- clothes 保存 ---- */
@@ -97,11 +106,13 @@ try {
 
   http_response_code(500);
   echo json_encode([
-    'ok'   => false,
-    'step' => 'insert_clothes',
-    'error'=> $e->getMessage()
-  ], JSON_UNESCAPED_UNICODE);
-  exit;
+    'ok'        => true,
+    'step'      => 'after_read_file',
+    'post'      => $_POST,
+    'file_size' => strlen($bytes),
+    'file_name' => $_FILES['file']['name'] ?? null,
+], JSON_UNESCAPED_UNICODE);
+exit;
 }
 
 
