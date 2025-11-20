@@ -1,28 +1,28 @@
 <?php
-// デバッグ用（上に置く）
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// === DB 接続テスト ===
+$DB_HOST = '127.0.0.1';
+$DB_USER = 'root';
+$DB_PASS = '1toclass!SH0';
+$DB_NAME = 'taggledb';
 
-header('Content-Type: application/json; charset=utf-8');
-session_start();
+$mysqli = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
+if ($mysqli->connect_errno) {
+    http_response_code(500);
+    echo json_encode([
+        'ok'   => false,
+        'step' => 'db_connect',
+        'error'=> $mysqli->connect_error,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+$mysqli->set_charset('utf8mb4');
 
-// ここでサーバー側にログも残しておく（任意）
-file_put_contents(
-    '/tmp/save_image_debug.log',
-    date('c')." HIT\n".
-    print_r($_SERVER, true)."\n".
-    print_r($_POST, true)."\n".
-    print_r($_FILES, true)."\n\n",
-    FILE_APPEND
-);
-
-// そのまま中身を返すだけ
+// ここまで来たら DB 接続は OK
 echo json_encode([
-    'ok'     => true,
-    'method' => $_SERVER['REQUEST_METHOD'] ?? null,
-    'post'   => $_POST,
-    'files'  => $_FILES,
+    'ok'   => true,
+    'step' => 'after_db_connect',
+    'post' => $_POST,
+    'files'=> $_FILES,
 ], JSON_UNESCAPED_UNICODE);
-
 exit;
+
