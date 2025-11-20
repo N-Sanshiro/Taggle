@@ -61,30 +61,41 @@ $name_cloth     = trim($name_cloth_raw) === '' ? null : trim($name_cloth_raw);
 
 // ★★ Step1: テキストだけ INSERT ★★
 try {
-    // cloth_image を一旦抜いてテスト
     $stmt = $mysqli->prepare(
-        'INSERT INTO clothes (id_user, name_cloth) VALUES (?, ?)'
+        'INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, ?)'
     );
     if (!$stmt) {
         throw new Exception('db prepare failed: '.$mysqli->error);
     }
 
-    $stmt->bind_param('is', $uid, $name_cloth);
+    // cloth_image はダミー文字列でもOK（NOT NULLのため）
+    $dummy = 'test';
+
+    $stmt->bind_param('iss', $uid, $dummy, $name_cloth);
 
     if (!$stmt->execute()) {
         throw new Exception('db execute failed: '.$stmt->error);
     }
 
-    $cloth_id = $mysqli->insert_id;
-    $stmt->close();
+    $cloth_id = $stmt->insert_id;
 
     echo json_encode([
-        'ok'       => true,
-        'step'     => 'insert_text_only',
+        'ok' => true,
+        'step' => 'insert_minimum_ok',
         'cloth_id' => $cloth_id,
-        'post'     => $_POST,
-    ], JSON_UNESCAPED_UNICODE);
+    ]);
     exit;
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'ok'=>false,
+        'step'=>'insert_minimum',
+        'error'=>$e->getMessage(),
+    ]);
+    exit;
+}
+
 
 } catch (Exception $e) {
     http_response_code(500);
