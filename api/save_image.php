@@ -53,8 +53,10 @@ if (!isset($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
 }
 
 /* ---- パラメータ取得 ---- */
+/* ---- パラメータ取得 ---- */
 $tag_image_id = isset($_POST['tag_image_id']) ? intval($_POST['tag_image_id']) : 0;
-$name_cloth   = trim($_POST['name_cloth'] ?? '');
+$name_cloth_raw = $_POST['name_cloth'] ?? '';
+$name_cloth = trim($name_cloth_raw) === '' ? null : trim($name_cloth_raw);
 
 $tmp   = $_FILES['file']['tmp_name'];
 $bytes = file_get_contents($tmp);
@@ -66,23 +68,15 @@ if ($bytes === false) {
 
 /* ---- clothes 保存 ---- */
 try {
-  if ($name_cloth === '') {
-    $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image) VALUES (?, ?)');
-    if (!$stmt) {
-      throw new Exception('db prepare failed: '.$mysqli->error);
-    }
-    $null = NULL;
-    $stmt->bind_param('ib', $uid, $null);
-    $stmt->send_long_data(1, $bytes);
-  } else {
-    $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, ?)');
-    if (!$stmt) {
-      throw new Exception('db prepare failed: '.$mysqli->error);
-    }
-    $null = NULL;
-    $stmt->bind_param('ibs', $uid, $null, $name_cloth);
-    $stmt->send_long_data(1, $bytes);
+  // 常に 3 カラムで INSERT
+  $stmt = $mysqli->prepare('INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, ?)');
+  if (!$stmt) {
+    throw new Exception('db prepare failed: '.$mysqli->error);
   }
+
+  $null = NULL;
+  $stmt->bind_param('ibs', $uid, $null, $name_cloth);
+  $stmt->send_long_data(1, $bytes);
 
   if (!$stmt->execute()) {
     throw new Exception('db execute failed: '.$stmt->error);
@@ -94,6 +88,7 @@ try {
   echo json_encode(['ok'=>false,'step'=>'insert_clothes','error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE);
   exit;
 }
+
 
 /* ---- relative 紐付け保存 ---- */
 $linked = null;
