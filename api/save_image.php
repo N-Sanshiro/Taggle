@@ -90,7 +90,7 @@ try {
 } catch (Exception $e) {
   // エラー内容をログに残しておくとさらに安心
   file_put_contents(
-    '/tmp/save_image_error.log',
+    'error.log',
     date('c').' '.$e->getMessage()."\n",
     FILE_APPEND
   );
