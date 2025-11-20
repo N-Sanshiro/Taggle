@@ -62,7 +62,7 @@ $name_cloth     = trim($name_cloth_raw) === '' ? null : trim($name_cloth_raw);
 // ★★ Step1: テキストだけ INSERT ★★
 try {
     $stmt = $mysqli->prepare(
-        'INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, ?)'
+        'INSERT INTO clothes (id_user, cloth_image, name_cloth) VALUES (?, ?, null)'
     );
     if (!$stmt) {
         throw new Exception('db prepare failed: '.$mysqli->error);
