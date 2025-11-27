@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Taggle - タグ読み取り</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+  .folder-icon {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    cursor: pointer;
+    transition: 0.1s;
+  }
+  .folder-icon:hover {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  .file-name {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 6px;
+  }
+  </style>
 </head>
 <body data-page="scan">
   <div class="scan-wrap">
@@ -42,8 +60,9 @@
         style="margin: 0 auto;"
       >
       <label for="tagFile" class="file-button">
-        <img src="フォルダ.png" alt="画像を選択" />
+        <img src="フォルダ.png" alt="画像を選択" class="folder-icon">
       </label>
+      <div id="fileName" class="file-name">ファイルが選択されていません</div>
     </div>
 
     <div class="footer-row">
@@ -68,12 +87,25 @@
 
   <script src="app.js"></script>
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (document.body.dataset.page === 'scan') {
-      pageScan();               // ← これでカメラ起動
-      initFileUploadMode();
-    }
-  });
+    const fileInput = document.getElementById('tagFile');
+    const fileName  = document.getElementById('fileName');
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length === 0) {
+        fileName.textContent = "ファイルが選択されていません";
+      } else if (fileInput.files.length === 1) {
+        fileName.textContent = fileInput.files[0].name;
+      } else {
+        fileName.textContent = fileInput.files.length + " 件のファイルが選択されています";
+      }
+    });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.body.dataset.page === 'scan') {
+        pageScan();               // ← これでカメラ起動
+        initFileUploadMode();
+      }
+    });
 </script>
 </body>
 </html>
