@@ -7,13 +7,11 @@ error_reporting(E_ALL);
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
-/* ログインチェック（とりあえず uid 無くても動くようにしておく） */
 $uid = (int)($_SESSION['uid'] ?? 0);
-// デバッグ中は未ログインでも動かしたいのでコメントアウト
-// if ($uid <= 0) {
-//     echo json_encode(['ok' => false, 'error' => 'not logged in']);
-//     exit;
-// }
+if ($uid <= 0) {
+    echo json_encode(['ok' => false, 'error' => 'not logged in']);
+    exit;
+}
 
 /* DB接続 */
 $mysqli = new mysqli('127.0.0.1', 'root', '1toclass!SH0', 'taggledb');

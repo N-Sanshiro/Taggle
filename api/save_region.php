@@ -2,9 +2,11 @@
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
-/* ★ セッションの uid を使う（テスト固定を削除） */
 $uid = (int)($_SESSION['uid'] ?? 0);
-if ($uid <= 0) { echo json_encode(['ok'=>false,'error'=>'not logged in']); exit; }
+if ($uid <= 0) { 
+  echo json_encode(['ok'=>false,'error'=>'not logged in']);
+  exit;
+}
 
 $raw = file_get_contents('php://input');
 $in  = json_decode($raw, true);

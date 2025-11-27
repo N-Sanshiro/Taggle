@@ -27,8 +27,7 @@ function fail($msg, $extra = []) {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST only');
 if (!isset($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) fail('no file');
 
-$uid = 1;
-//isset($_SESSION['uid']) ? intval($_SESSION['uid']) : 0;
+$uid = isset($_SESSION['uid']) ? intval($_SESSION['uid']) : 0;
 $item_name = $_POST['name'] ?? '';
 $tmp  = $_FILES['file']['tmp_name'];
 $name = $_FILES['file']['name'] ?? 'photo.jpg';

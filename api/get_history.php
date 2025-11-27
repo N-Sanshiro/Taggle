@@ -3,8 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 session_start();
 
 /* ---- セッション確認 ---- */
-$uid = 1;
-// (int)($_SESSION['uid'] ?? 0);
+$uid = (int)($_SESSION['uid'] ?? 0);
 if ($uid <= 0) {
   echo json_encode([
     'ok'    => false,

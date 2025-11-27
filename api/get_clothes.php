@@ -7,7 +7,7 @@ header('Access-Control-Allow-Origin: *');
 
 try {
   require_once __DIR__ . '/db.php';
-  $pdo = db(); // ← 重要
+  $pdo = db();
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok'=>false,'step'=>'db','error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE);
