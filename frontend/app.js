@@ -344,7 +344,7 @@ function pageResult(){
   if (btnOk) {
     btnOk.innerHTML = `
       <span class="line1">OK</span>
-      <span class="line2">（ログインして保存）</span>
+      <span class="line2">（ログイン→保存）</span>
     `;
     btnOk.onclick = ()=>{ 
       location.href = joinUrl(API_BASE, './api/mypage.php') 
