@@ -31,6 +31,22 @@
       <button id="sendTag" class="btn-pill" style="display:none" disabled>送信</button>
     </div>
 
+    <div class="actions" style="margin-top: 12px; flex-direction: column; gap: 8px;">
+      <label style="font-size: 14px; text-align:center;">
+        端末に保存しているタグ画像を選んで解析
+      </label>
+      <input
+        type="file"
+        id="tagFile"
+        accept="image/*"
+        multiple
+        style="margin: 0 auto;"
+      >
+      <button id="tagFileSend" class="btn-pill" type="button">
+        選択した画像を解析
+      </button>
+    </div>
+
     <div class="footer-row">
       <a href="index.html" class="btn-close" aria-label="閉じる">
         <svg class="icon-x" viewBox="0 0 24 24" aria-hidden="true">
@@ -56,6 +72,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     if (document.body.dataset.page === 'scan') {
       pageScan();               // ← これでカメラ起動
+      initFileUploadMode();
     }
   });
 </script>

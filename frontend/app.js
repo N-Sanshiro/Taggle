@@ -152,8 +152,16 @@ async function getUserIdFromSession() {
   return null;
 }
 
-/* ---------- ページ別ロジック ---------- */
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
+/* ---------- ページ別ロジック ---------- */
 /* 1) scan.html */
 async function pageScan(){
   const video = document.getElementById('tagCam');
@@ -164,44 +172,114 @@ async function pageScan(){
   const stop = await useCamera(video);
 
   btn.onclick = async ()=>{
-  btn.disabled = true; const prev = btn.textContent; btn.textContent = '解析中…';
-  setLoading(true, 'タグを解析中', 'AIに送信しています');
-  const ac = new AbortController();
-  let navigating = false;
-  try{
-    const rawBlob = await snapshot(video, canvas);
-    const blob = await resizeBlobToJpeg(rawBlob, 1280, .85);
-    const tagImageDataURL = toDataURL(canvas);
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = '解析中…';
+    let navigating = false;
+    try{
+      const rawBlob = await snapshot(video, canvas);
+      const blob = await resizeBlobToJpeg(rawBlob, 1280, .85);
+      const tagImageDataURL = toDataURL(canvas);
 
-    // 送信中の進捗％を表示
+      const json = await runAnalyzeOne(blob, '');
+
+      sessionStorage.setItem(SS_LATEST_KEY, JSON.stringify({
+        ts: Date.now(),
+        api: json,
+        tagImage: tagImageDataURL,
+        tagImageId: (json && (json.image_id || json.result?.image_id)) || null
+      }));
+      navigating = true;
+      location.href = 'result.html';
+    }catch(e){
+      // runAnalyzeOne 内でメッセージは出るのでここは特に何もしなくてもOK
+    }finally{
+      if (!navigating) {
+        btn.textContent = prev;
+        btn.disabled = false;
+      }
+      stop();
+    }
+  };
+}
+
+// 端末に保存している画像ファイルからタグ解析
+function initFileUploadMode() {
+  const fileInput = document.getElementById('tagFile');
+  const sendBtn   = document.getElementById('tagFileSend');
+  if (!fileInput || !sendBtn) return;
+
+  sendBtn.addEventListener('click', async () => {
+    const files = fileInput.files;
+    if (!files || !files.length) {
+      toastError('画像ファイルを選択してください');
+      return;
+    }
+
+    // 結果をまとめる配列（複数枚対応）
+    const batch = [];
+
+    sendBtn.disabled = true;
+    const prevText = sendBtn.textContent;
+    sendBtn.textContent = '解析中…';
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // プレビュー用に dataURL 化（result / history で画像表示したいとき用）
+        const tagImageDataURL = await fileToDataURL(file);
+
+        const json = await runAnalyzeOne(file, file.name);
+
+        batch.push({
+          ts: Date.now(),
+          api: json,
+          tagImage: tagImageDataURL,
+          tagImageId: (json && (json.image_id || json.result?.image_id)) || null
+        });
+      }
+
+      if (batch.length === 1) {
+        // 1枚だけ → 今まで通り result.html で表示
+        sessionStorage.setItem(SS_LATEST_KEY, JSON.stringify(batch[0]));
+        location.href = 'result.html';
+      } else {
+        // 複数枚 → 配列ごと別ページに渡す
+        sessionStorage.setItem('TAGGLE_BATCH', JSON.stringify(batch));
+        location.href = 'result_multi.html';   // ▼ このページを後で用意
+      }
+    } catch (e) {
+      // runAnalyzeOne の中でエラー表示済み
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = prevText;
+    }
+  });
+}
+
+// 1枚の画像(Blob または File)を Dify 経由で解析して JSON を返す
+async function runAnalyzeOne(blobOrFile, itemName = '') {
+  setLoading(true, 'タグを解析中', 'AIに送信しています');
+
+  const ac = new AbortController();
+  try {
     const json = await postImage(
       ANALYZE_ENDPOINT,
-      blob,
-      { name:'' },
+      blobOrFile,
+      { name: itemName },
       {
         signal: ac.signal,
         onProgress: (pct) => setLoadingProgress(pct)
       }
     );
 
-    // サーバから返ってきた後は「処理中」に文言変更（任意）
     setLoading(true, '結果を処理中', '少々お待ちください');
-
-    sessionStorage.setItem(SS_LATEST_KEY, JSON.stringify({
-      ts: Date.now(),
-      api: json,
-      tagImage: tagImageDataURL,
-      tagImageId: (json && (json.image_id || json.result?.image_id)) || null
-    }));
-    navigating = true;
-    location.href = 'result.html';
-    }catch(e){
-      toastError('解析に失敗しました: ' + (e?.message || String(e)));
-    }finally{
-      if (!navigating) setLoading(false);
-      btn.textContent = prev; btn.disabled = false; stop();
-    }
-  };
+    return json;
+  } catch (e) {
+    toastError('解析に失敗しました: ' + (e?.message || String(e)));
+    throw e;
+  } finally {
+    setLoading(false);
+  }
 }
 
 /* 2) result.html */
@@ -637,7 +715,7 @@ async function setupHistoryFinderVec() {
 window.addEventListener('load', async () => {
   const page = document.body.dataset.page;   // <body data-page="result"> の値
   try {
-    if (page === 'scan')    { await pageScan(); }
+    if (page === 'scan')    { await pageScan(); initFileUploadMode();}
     if (page === 'result')  { pageResult(); }
     if (page === 'cloth')   { await pageCloth(); }
     if (page === 'history') { pageHistory(); await setupHistoryFinderVec(); }
@@ -751,46 +829,6 @@ function renderAdvice(el, linesOrText){
   el.innerHTML = `<ul class="advice-list">${html}</ul>`;
 }
 
-/*
-window.addEventListener('load', async () => {
-  try {
-    const iconToday = document.getElementById('wxIconToday');
-    const iconTomorrow = document.getElementById('wxIconTomorrow');
-    if (!iconToday || !iconTomorrow) {
-      return;
-    }
-
-    // 今日
-    const t  = Math.round(data.current.temperature_2m);
-    const h  = data.current.relative_humidity_2m;
-    const wc = data.current.weather_code;
-    document.getElementById('wxIconToday').textContent = WMO_ICON(wc);
-    document.getElementById('wxDescToday').textContent = (WMO && WMO[wc]) ? WMO[wc] : '—';
-    document.getElementById('wxTempToday').textContent = `${t}℃`;
-    document.getElementById('wxHumToday').textContent  = `${h}%`;
-    renderAdvice(document.getElementById('wxAdviceToday'), buildAdviceToday(t, h, wc));
-
-
-    // 明日
-    const i = 1;
-    const wc2  = data.daily.weather_code[i];
-    const tmax = Math.round(data.daily.temperature_2m_max[i]);
-    const tmin = Math.round(data.daily.temperature_2m_min[i]);
-    const rain = data.daily.precipitation_sum[i];
-    document.getElementById('wxIconTomorrow').textContent = WMO_ICON(wc2);
-    document.getElementById('wxDescTomorrow').textContent = (WMO && WMO[wc2]) ? WMO[wc2] : '—';
-    document.getElementById('wxTempTomorrow').textContent = `${tmax}℃ / ${tmin}℃`;
-    document.getElementById('wxRainTomorrow').textContent = `${rain} mm`;
-    renderAdvice(document.getElementById('wxAdviceTomorrow'), buildAdviceTomorrow(tmax, rain));
-
-  } catch (e) {
-    console.error('天気の取得エラー:', e);
-    const el = document.getElementById('wxAdviceToday');
-    if (el) el.textContent = '天気情報の取得に失敗しました。';
-  }
-});
-*/
-
 /* --- ページロード時に呼び出す処理 --- */
 function ensureLoading() {
   let el = document.getElementById('loading');
@@ -865,3 +903,4 @@ function setLoadingProgress(pct) {
   if (bar) bar.style.width = v + '%';
   if (label) label.textContent = v > 0 ? (v + '%') : '';
 }
+
