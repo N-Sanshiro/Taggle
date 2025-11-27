@@ -324,26 +324,45 @@ function pageResult(){
   // 既定（ログイン済み時）の挙動を定義
   function setBehaviorLoggedIn(){
     if (btnOk) {
-      btnOk.textContent = 'OK（保存へ）';
+      btnOk.innerHTML = `
+        <span class="line1">OK</span>
+        <span class="line2">（保存へ）</span>
+      `;
       btnOk.onclick = ()=>{ location.href = 'cloth.html'; };
     }
     if (btnNo) {
-      btnNo.textContent = 'NO（ホームに戻る）';
+      btnNo.innerHTML = `
+        <span class="line1">NO</span>
+        <span class="line2">（ホームに戻る）</span>
+      `;
       btnNo.onclick = ()=>{ location.href = 'index.html'; };
     }
   }
 
   // 未ログイン時の挙動を定義（ログイン画面へ誘導）
   function setBehaviorLoggedOut(){
-    if (btnOk) {
-      btnOk.textContent = 'OK（ログインして保存）';
-      btnOk.onclick = ()=>{ location.href = joinUrl(API_BASE, './api/mypage.php') + '?next=' + encodeURIComponent('cloth.html'); };
-    }
-    if (btnNo) {
-      btnNo.textContent = 'NO（ホームに戻る）';
-      btnNo.onclick = ()=>{ location.href = joinUrl(API_BASE, 'index.html') + '?next=' + encodeURIComponent('index.html'); };
-    }
+  if (btnOk) {
+    btnOk.innerHTML = `
+      <span class="line1">OK</span>
+      <span class="line2">（ログインして保存）</span>
+    `;
+    btnOk.onclick = ()=>{ 
+      location.href = joinUrl(API_BASE, './api/mypage.php') 
+        + '?next=' + encodeURIComponent('cloth.html'); 
+    };
   }
+  if (btnNo) {
+    btnNo.innerHTML = `
+      <span class="line1">NO</span>
+      <span class="line2">（ホームに戻る）</span>
+    `;
+    btnNo.onclick = ()=>{ 
+      location.href = joinUrl(API_BASE, 'index.html') 
+        + '?next=' + encodeURIComponent('index.html'); 
+    };
+  }
+}
+
 
   // セッション確認 → 状態で切り替え
   (async ()=>{
