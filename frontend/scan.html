@@ -6,22 +6,23 @@
   <title>Taggle - タグ読み取り</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-  .folder-icon {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-    cursor: pointer;
-    transition: 0.1s;
-  }
-  .folder-icon:hover {
-    transform: scale(1.05);
-    opacity: 0.8;
-  }
-  .file-name {
-    text-align: center;
-    font-size: 14px;
-    margin-top: 6px;
-  }
+    .folder-icon {
+      width: 28px;   /* camera.png と同じサイズに */
+      height: 28px;
+      object-fit: contain;
+      display: block;
+    }
+    .file-name {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 6px;
+    }
+    /* カメラ＆フォルダボタンを横並びにする */
+    .actions-dual {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
   </style>
 </head>
 <body data-page="scan">
@@ -42,14 +43,13 @@
 
     <p class="hint" style="text-align: center;">服のタグを読み取ろう！！</p>
 
-    <div class="actions">
+    <!-- ▼ カメラボタン＋フォルダボタンを横並びにした部分 ▼ -->
+    <div class="actions actions-dual">
+      <!-- カメラ撮影ボタン（既存） -->
       <button id="tagSnap" class="btn-pill" type="button" aria-label="撮影">
         <img src="/Taggle/camera.png" alt="カメラ" style="width:28px;height:28px;display:block;">
       </button>
-      <button id="sendTag" class="btn-pill" style="display:none" disabled>送信</button>
-    </div>
 
-    <div class="actions" style="margin-top: 12px; flex-direction: column; gap: 8px;">
       <!-- 隠しておく本物の file input -->
       <input
         type="file"
@@ -59,15 +59,14 @@
         style="display:none;"
       >
 
-      <!-- フォルダ.png をボタンにする -->
-      <label for="tagFile" class="file-button">
-        <img src="フォルダ.png" alt="画像を選択" class="folder-icon">
+      <!-- フォルダ.png を丸ボタンにする（camera.png と同じ btn-pill） -->
+      <label for="tagFile" class="btn-pill" style="cursor:pointer;" aria-label="画像から読み込む">
+        <img src="フォルダ.png" alt="フォルダから選択" class="folder-icon">
       </label>
-
-      <!-- 選択されたファイル名表示 -->
-      <div id="fileName" class="file-name">ファイルが選択されていません</div>
     </div>
 
+    <!-- ファイル名表示 -->
+    <div id="fileName" class="file-name">ファイルが選択されていません</div>
 
     <div class="footer-row">
       <a href="index.html" class="btn-close" aria-label="閉じる">
@@ -91,25 +90,24 @@
 
   <script src="app.js"></script>
   <script>
-    const fileInput = document.getElementById('tagFile');
-    const fileName  = document.getElementById('fileName');
-
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length === 0) {
-        fileName.textContent = "ファイルが選択されていません";
-      } else if (fileInput.files.length === 1) {
-        fileName.textContent = fileInput.files[0].name;
-      } else {
-        fileName.textContent = fileInput.files.length + " 件のファイルが選択されています";
-      }
-    });
-    
+    // ファイル名表示だけローカルで処理
     document.addEventListener('DOMContentLoaded', () => {
-      if (document.body.dataset.page === 'scan') {
-        pageScan();               // ← これでカメラ起動
-        initFileUploadMode();
-      }
+      const fileInput = document.getElementById('tagFile');
+      const fileName  = document.getElementById('fileName');
+
+      if (!fileInput || !fileName) return;
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length === 0) {
+          fileName.textContent = 'ファイルが選択されていません';
+        } else if (fileInput.files.length === 1) {
+          fileName.textContent = fileInput.files[0].name;
+        } else {
+          fileName.textContent =
+            fileInput.files.length + ' 件のファイルが選択されています';
+        }
+      });
     });
-</script>
+  </script>
 </body>
 </html>
