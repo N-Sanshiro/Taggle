@@ -341,7 +341,7 @@ function pageResult(){
     }
     if (btnNo) {
       btnNo.textContent = 'NO（ホームに戻る）';
-      btnNo.onclick = ()=>{ location.href = joinUrl(API_BASE, '/frontend/index.html') + '?next=' + encodeURIComponent('index.html'); };
+      btnNo.onclick = ()=>{ location.href = joinUrl(API_BASE, 'index.html') + '?next=' + encodeURIComponent('index.html'); };
     }
   }
 
