@@ -880,7 +880,7 @@ html.no-scroll, body.no-scroll { overflow: hidden !important; }
   align-items: center;
 
   /* フレームより少し細めにする */
-  max-width: 320px;              /* ← 好きな幅に調整：280〜340あたり */
+  max-width: 300px;              /* ← 好きな幅に調整：280〜340あたり */
   width: 100%;
 
   margin: 20px auto 16px;        /* 左右 auto で完全中央 */
