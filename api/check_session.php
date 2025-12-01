@@ -5,6 +5,6 @@ session_start();
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode([
   'ok'        => true,
-  'logged_in' => isset($_SESSION['id_user']),
-  'id_user'   => $_SESSION['id_user'] ?? null,
+  'logged_in' => isset($_SESSION['uid']),
+  'id_user'   => $_SESSION['uid'] ?? null,
 ], JSON_UNESCAPED_UNICODE);
