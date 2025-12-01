@@ -6,7 +6,7 @@ session_start();
 function bad($msg, $code = 400) {
   http_response_code($code);
   echo '<p style="color:red">'.htmlspecialchars($msg, ENT_QUOTES, 'UTF-8').'</p>';
-  echo '<p><a href="../frontend/signup.html">戻る</a></p>'; // ✅ 修正
+  echo '<p><a href="../signup.html">戻る</a></p>'; // ✅ 修正
   exit;
 }
 
@@ -41,7 +41,7 @@ try {
   $_SESSION['uid'] = $uid;
   $_SESSION['user_name'] = $user_name;
 
-  header('Location: ../api/mypage.php'); // ✅ フロントエンド側に遷移
+  header('Location: ../mypage.php'); // ✅ フロントエンド側に遷移
   exit;
 }catch (Throwable $e) {
   if ($pdo && $pdo->inTransaction()) {
