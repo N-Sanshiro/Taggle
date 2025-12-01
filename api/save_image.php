@@ -25,7 +25,7 @@ register_shutdown_function(function () {
 
 // ---- ユーザーID ----
 // 本番ではセッションから取りたいが、まずは 1 でテスト
-$uid = 1;
+$uid = isset($_SESSION['id_user']);
 
 // ---- DB 接続 ----
 $DB_HOST = '127.0.0.1';
