@@ -41,7 +41,7 @@ try {
   $_SESSION['uid'] = $uid;
   $_SESSION['user_name'] = $user_name;
 
-  header('Location: ../mypage.php'); // ✅ フロントエンド側に遷移
+  header('Location: mypage.php'); // ✅ フロントエンド側に遷移
   exit;
 }catch (Throwable $e) {
   if ($pdo && $pdo->inTransaction()) {
