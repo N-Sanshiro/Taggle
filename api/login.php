@@ -33,6 +33,7 @@ try {
   // ログイン成立 → セッション確立
   session_regenerate_id(true);
   $_SESSION['uid']       = (int)$row['id_user'];
+  $_SESSION['id_user']   = (int)$row['id_user']; 
   $_SESSION['user_name'] = $row['user_name'];
   $_SESSION['mail']      = $mail_address;
 
