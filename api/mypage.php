@@ -13,8 +13,7 @@ if (!isset($_SESSION['uid'])) {
 require_once __DIR__ . '/db.php';
 $pdo = db();
 
-$uid = 1; 
-//(int)$_SESSION['uid'];
+$uid = (int)$_SESSION['uid'];
 $user_name = $_SESSION['user_name'] ?? 'ユーザー';
 
 /* ===== API（同一ファイル） ===== */
